@@ -1,3 +1,4 @@
+// Page 3: In-game board (called numbers + player cards) kept on a single, equal-height grid.
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -72,8 +73,7 @@ export default function GameBoard() {
   }, [state.currentCall]);
 
   return (
-    // Page 3: desktop-friendly view with full context
-    <main className="relative min-h-screen bg-linear-to-br from-cyan-50 via-white to-amber-50 p-3 sm:p-4 md:p-6">
+    <main className="game-shell relative h-screen overflow-hidden bg-linear-to-br from-cyan-50 via-white to-amber-50 p-1 sm:p-2 md:p-3">
       {state.winStatus === 'win' ? <WinBlinker /> : null}
 
       {currentPosition ? (
@@ -90,17 +90,34 @@ export default function GameBoard() {
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-7xl">
+      <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
         {/* Top status bar */}
-        <header className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <header className="relative rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm">
+          {/* Compact quick actions anchored top-right */}
+          <div className="absolute right-2 top-2 flex items-center gap-1 text-[11px]">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
+              className="rounded-full bg-emerald-600 px-3 py-1 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 active:translate-y-0"
+            >
+              🔥 New Run
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 font-semibold text-amber-800 shadow-inner"
+            >
+              🎁 Rewards
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="md:col-span-2 flex items-center justify-between gap-3 md:gap-4">
               <div className="flex-1 rounded-lg bg-linear-to-r from-emerald-50 to-emerald-100 px-4 py-3 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-emerald-700 font-semibold">Balance</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Balance</p>
                 <p className="text-xl font-extrabold text-emerald-900">${state.balance.toFixed(2)}</p>
               </div>
               <div className="flex-1 rounded-lg bg-linear-to-r from-sky-50 to-sky-100 px-4 py-3 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-sky-700 font-semibold">Bet</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Bet</p>
                 <p className="text-xl font-extrabold text-sky-900">${state.betAmount.toFixed(2)}</p>
               </div>
             </div>
@@ -115,16 +132,18 @@ export default function GameBoard() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-slate-700">First 5:</span>
-                  {firstFiveDraws.length
-                    ? firstFiveDraws.map((num) => (
-                        <span
-                          key={num}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800 ring-2 ring-sky-200"
-                        >
-                          {num}
-                        </span>
-                      ))
-                    : <span className="text-xs text-slate-500">—</span>}
+                  {firstFiveDraws.length ? (
+                    firstFiveDraws.map((num) => (
+                      <span
+                        key={num}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800 ring-2 ring-sky-200"
+                      >
+                        {num}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500">—</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -133,85 +152,26 @@ export default function GameBoard() {
               <p className="text-xl font-bold text-slate-900">
                 {state.winStatus === 'none' ? (state.gameActive ? 'Playing' : 'Stopped') : state.winStatus}
               </p>
+              <p className="text-[11px] text-slate-500">{tip}</p>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => dispatch({ type: 'FORCE_WIN' })}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 active:scale-95"
-            >
-              Try a Win
-            </button>
-          </div>
-          {state.winStatus === 'win' ? (
-            <div className="mt-3 rounded-md bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-900">
-              Congratulations! Confetti unlocked. 🎊
-            </div>
-          ) : null}
         </header>
 
-        {/* Engagement strip */}
-        <section className="engage-band mb-5 rounded-2xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/80 via-white/60 to-amber-50/80 p-4 shadow-md backdrop-blur">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="rounded-2xl bg-white/80 px-3 py-2 text-xl shadow-sm">📱</span>
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">Mobile-first flow</p>
-                <p className="text-xs text-slate-700">Immersive play, quick taps, endless fun. {tip}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="pulse-glow rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 active:translate-y-0"
-                onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
-              >
-                🔥 New Run
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-amber-300 bg-white/80 px-4 py-2 text-sm font-semibold text-amber-800 shadow-inner"
-              >
-                🎁 Rewards Vault
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Main grid: called numbers (left) + two selected cards (right) */}
-        <div className="grid grid-cols-2 gap-3 items-stretch lg:grid-cols-5">
-          <div className="col-span-1 lg:col-span-3 h-full">
-            <CalledNumbersTable called={state.calledNumbers} currentCall={state.currentCall} cellRefs={cellRefs} />
+        <div className="flex flex-1 items-stretch gap-2 overflow-hidden">
+          <div className="h-full min-w-0 basis-1/2 overflow-hidden">
+            <div className="flex h-full w-full">
+              <CalledNumbersTable called={state.calledNumbers} currentCall={state.currentCall} cellRefs={cellRefs} />
+            </div>
           </div>
-          <div className="col-span-1 lg:col-span-2 h-full">
-            <PlayerCards cards={state.playerCards} />
+          <div className="h-full min-w-0 basis-1/2 overflow-hidden">
+            <div className="flex h-full w-full">
+              <PlayerCards cards={state.playerCards} />
+            </div>
           </div>
         </div>
 
-        {/* Bottom status bar */}
-        <StatsBar />
-
-        {/* Player dashboard */}
-        <div className="mt-6">
-          <div className="lg:hidden">
-            <button
-              type="button"
-              onClick={() => setShowMobileDashboard((prev) => !prev)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm"
-            >
-              {showMobileDashboard ? 'Hide Player Dashboard' : 'Show Player Dashboard'}
-            </button>
-            {showMobileDashboard ? (
-              <div className="mt-3">
-                <PlayerDashboard />
-              </div>
-            ) : null}
-          </div>
-          <div className="hidden lg:block">
-            <PlayerDashboard />
-          </div>
-        </div>
+        {/* Bottom sections removed per request to keep only main grid visible */}
       </div>
     </main>
   );

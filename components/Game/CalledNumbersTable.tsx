@@ -28,7 +28,7 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
     return base;
   }, [called, mode, seed]);
 
-  const rows = [];
+  const rows: number[][] = [];
   for (let i = 0; i < numbers.length; i += 5) {
     const slice = numbers.slice(i, i + 5);
     while (slice.length < 5) slice.push(0); // pad for layout when filtering
@@ -39,11 +39,11 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
   const lastCalled = currentCall;
 
   return (
-    <section className="relative rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-2xl backdrop-blur-xl">
+    <section className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-2xl backdrop-blur-xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Bingo Command Center</p>
-          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-lg font-bold text-slate-50">
             Numbers Live
             <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-[11px] font-semibold text-emerald-200">Live</span>
           </h3>
@@ -79,7 +79,7 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
         />
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="flex-1 overflow-auto">
         <table className="w-full border-collapse text-center text-sm">
           <thead>
             <tr>
@@ -150,4 +150,3 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
     </section>
   );
 }
-
