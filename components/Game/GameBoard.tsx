@@ -37,7 +37,6 @@ export default function GameBoard() {
     return null;
   }, [state.currentCall, state.playerCards]);
 
-  // Flying chip animation to current draw badge
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!state.currentCall) return;
@@ -73,7 +72,7 @@ export default function GameBoard() {
   }, [state.currentCall]);
 
   return (
-    // Page 3: in-game view showing called numbers on the left and the two selected cards on the right
+    // Page 3: desktop-friendly view with full context
     <main className="relative min-h-screen bg-linear-to-br from-cyan-50 via-white to-amber-50 p-3 sm:p-4 md:p-6">
       {state.winStatus === 'win' ? <WinBlinker /> : null}
 
@@ -92,7 +91,7 @@ export default function GameBoard() {
       ) : null}
 
       <div className="mx-auto max-w-7xl">
-        {/* Top status bar: balance, bet, current draw, status, and dev helper */}
+        {/* Top status bar */}
         <header className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="md:col-span-2 flex items-center justify-between gap-3 md:gap-4">
@@ -152,7 +151,7 @@ export default function GameBoard() {
           ) : null}
         </header>
 
-        {/* Engagement strip with gameplay insight and reward teaser */}
+        {/* Engagement strip */}
         <section className="engage-band mb-5 rounded-2xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/80 via-white/60 to-amber-50/80 p-4 shadow-md backdrop-blur">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
@@ -180,7 +179,7 @@ export default function GameBoard() {
           </div>
         </section>
 
-        {/* Main grid: called numbers table (left) + two selected cards (right) */}
+        {/* Main grid: called numbers (left) + two selected cards (right) */}
         <div className="grid grid-cols-2 gap-3 items-stretch lg:grid-cols-5">
           <div className="col-span-1 lg:col-span-3 h-full">
             <CalledNumbersTable called={state.calledNumbers} currentCall={state.currentCall} cellRefs={cellRefs} />
@@ -190,7 +189,7 @@ export default function GameBoard() {
           </div>
         </div>
 
-        {/* Bottom status bar with message and play again */}
+        {/* Bottom status bar */}
         <StatsBar />
 
         {/* Player dashboard */}

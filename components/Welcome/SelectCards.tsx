@@ -1,4 +1,4 @@
-// Step 2 page: choose exactly two cards before starting the game.
+// Step 2: mobile-first, no-scroll selection screen.
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -9,6 +9,7 @@ export default function SelectCards() {
   const { state, dispatch } = useGame();
   const canBegin = state.selectedCardIndices.length === 2;
   const [expanded, setExpanded] = useState<number[]>([]);
+
   const showAll = useMemo(
     () => state.allCards.length > 0 && expanded.length === state.allCards.length,
     [expanded.length, state.allCards.length],
@@ -32,72 +33,61 @@ export default function SelectCards() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-cyan-50 via-white to-amber-50 p-4 sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(59,130,246,0.16),transparent_40%),radial-gradient(circle_at_85%_15%,rgba(16,185,129,0.15),transparent_42%)]" />
-      <div className="relative mx-auto max-w-5xl space-y-4 sm:space-y-5">
-        <header className="relative overflow-hidden rounded-3xl border border-white/40 bg-white/75 px-5 py-6 shadow-xl backdrop-blur-md">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-sky-50/70 via-white/30 to-emerald-50/70" />
-          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 shadow-sm">
-                <span className="text-base">🎴</span> Step 2 / 3 · Pick your duo
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">Select Your 2 Cards</h1>
-              <p className="text-sm sm:text-base text-slate-600">
-                Quick-scan number list by default. Tap a card to select; open detail only on the one you need.
-              </p>
-              <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
-                <span className="rounded-full bg-emerald-50 px-3 py-1">Max 2 cards</span>
-                <span className="rounded-full bg-sky-50 px-3 py-1">Detail shows matrix + image</span>
-                <span className="rounded-full bg-amber-50 px-3 py-1">Built for mobile & desktop</span>
-              </div>
-            </div>
-            <div className="hidden sm:flex flex-col items-end gap-2 text-xs font-semibold text-slate-700">
-              <span className="rounded-full bg-white/70 px-3 py-2 shadow-sm">Selected: {state.selectedCardIndices.length}/2</span>
-              <span className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-800 shadow-sm">
-                Balance: ${state.balance.toFixed(2)}
-              </span>
-            </div>
-          </div>
+    <main className="relative h-screen overflow-hidden bg-slate-950 text-slate-50 p-3">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(59,130,246,0.14),transparent_45%),radial-gradient(circle_at_85%_15%,rgba(16,185,129,0.14),transparent_45%)]" />
+      <div className="relative mx-auto flex h-full max-w-4xl flex-col gap-3">
+        {/* Top bar */}
+        <header className="flex items-center justify-between rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-[11px] font-semibold backdrop-blur">
+          <span className="inline-flex items-center gap-2 text-emerald-200">
+            <span className="text-sm">🎴</span> Step 2 · Pick your duo
+          </span>
+          <span className="text-white/80">Selected {state.selectedCardIndices.length}/2</span>
         </header>
 
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-md backdrop-blur">
-          <button
-            type="button"
-            onClick={toggleAll}
-            className="rounded-full border border-slate-200 bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800 active:translate-y-0"
-          >
-            {expanded.length === state.allCards.length ? 'Hide all details' : 'Show all details'}
-          </button>
-          <span className="text-xs text-slate-600">Toggle to preview every card’s grid & free-space image at once.</span>
-        </div>
-
-        <CardSelector
-          cards={state.allCards}
-          selectedIndices={state.selectedCardIndices}
-          onSelect={(indices) => dispatch({ type: 'SELECT_CARDS', payload: indices })}
-          expandedIndices={expanded}
-          onToggleExpand={toggleExpand}
-          showAllDetails={showAll}
-        />
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-md backdrop-blur">
-          <span className="text-sm font-semibold text-slate-800">
-            {state.selectedCardIndices.length === 2 ? 'Locked in! Ready for the draw.' : 'Pick two cards to continue.'}
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm">
-              Live balance: ${state.balance.toFixed(2)}
-            </span>
+        {/* Toggle strip */}
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs backdrop-blur">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleBegin}
-              disabled={!canBegin}
-              className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-emerald-500 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300"
+              onClick={toggleAll}
+              className="rounded-full border border-slate-200 bg-slate-900 px-3 py-1 text-[11px] font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 active:translate-y-0"
             >
-              Start to play 🚦
+              {expanded.length === state.allCards.length ? 'Hide all details' : 'Show all details'}
             </button>
+            <span className="text-[11px] text-white/70">Numbers first; open details only when needed.</span>
           </div>
+          <span className="text-[11px] text-white/70">Balance ${state.balance.toFixed(2)}</span>
+        </div>
+
+        {/* Card rail */}
+        <div className="flex-1 rounded-xl border border-white/10 bg-white/5 p-2 backdrop-blur">
+          <div className="flex h-full flex-row gap-2 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory">
+            <div className="flex min-w-full snap-start flex-col gap-2">
+              <CardSelector
+                cards={state.allCards}
+                selectedIndices={state.selectedCardIndices}
+                onSelect={(indices) => dispatch({ type: 'SELECT_CARDS', payload: indices })}
+                expandedIndices={expanded}
+                onToggleExpand={toggleExpand}
+                showAllDetails={showAll}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs backdrop-blur">
+          <span className="text-[11px] text-white/70">
+            {state.selectedCardIndices.length === 2 ? 'Ready to draw.' : 'Pick two cards.'}
+          </span>
+          <button
+            type="button"
+            onClick={handleBegin}
+            disabled={!canBegin}
+            className="rounded-full bg-emerald-500 px-4 py-2 text-[11px] font-bold text-slate-950 shadow-md transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-white"
+          >
+            {canBegin ? 'Start Game →' : 'Select 2'}
+          </button>
         </div>
       </div>
     </main>
