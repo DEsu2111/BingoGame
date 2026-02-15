@@ -36,14 +36,21 @@ export default function ResultPage() {
   const actionLabel = isWin ? 'Share to Telegram' : 'Double Down';
   const actionClick = () => (isWin ? shareToTelegram('win', state.winAmount) : dispatch({ type: 'PLAY_AGAIN' }));
 
-  const detailLines = useMemo(
-    () => [
+  const detailLines = useMemo(() => {
+    const lines = [
       `Matched: ${state.matchedCount}`,
       `Bet: $${state.betAmount.toFixed(2)}`,
       isWin ? `Payout: $${state.winAmount.toFixed(2)}` : 'Payout: $0.00',
-    ],
-    [isWin, state.betAmount, state.matchedCount, state.winAmount],
-  );
+    ];
+    // Approximate “time played” by total calls in this round; if zero, omit
+    if (state.calledNumbersList.length) {
+      lines.push(`Calls this round: ${state.calledNumbersList.length}`);
+    }
+    if (state.results.length) {
+      lines.push(`Rounds played: ${state.results.length}`);
+    }
+    return lines;
+  }, [isWin, state.betAmount, state.calledNumbersList.length, state.matchedCount, state.results.length, state.winAmount]);
 
   return (
     <main className={`min-h-screen p-4 sm:p-6 md:p-8 ${bgClass}`}>
@@ -84,6 +91,21 @@ export default function ResultPage() {
               >
                 View Drawn Numbers
               </button>
+            </div>
+            <div className="w-full pt-4 text-center text-sm text-white/80">
+              {isWin ? (
+                <p className="font-semibold">Share the win with friends via Telegram bot <strong>@desu</strong></p>
+              ) : (
+                <p className="font-semibold">Need a boost? Chat with bot <strong>@desu</strong> to share or get tips.</p>
+              )}
+              <a
+                href="https://t.me/desu"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center mt-2 px-4 py-2 rounded-full bg-white/15 border border-white/25 text-sm font-bold text-white hover:bg-white/20"
+              >
+                Open @desu
+              </a>
             </div>
           </div>
         </div>
