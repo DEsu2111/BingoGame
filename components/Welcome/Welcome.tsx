@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
-import BalanceDisplay from './BalanceDisplay';
-import DepositWithdraw from './DepositWithdraw';
 
 export default function Welcome() {
   const { state, dispatch } = useGame();
   const [betInput, setBetInput] = useState<string>(state.betAmount > 0 ? String(state.betAmount) : '');
+  const [walletAmount, setWalletAmount] = useState<string>('50');
+  const walletInputRef = useRef<HTMLInputElement | null>(null);
 
   const parsedBet = useMemo(() => {
     const value = Number(betInput);
@@ -22,65 +22,92 @@ export default function Welcome() {
     dispatch({ type: 'START_GAME' });
   };
 
+  const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
+    const value = Number(walletAmount);
+    if (!Number.isFinite(value) || value <= 0) return;
+    dispatch({ type, payload: value });
+    setWalletAmount('50');
+  };
+
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#070b14] text-slate-200 antialiased overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-emerald-600/20 blur-[100px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-72 h-72 bg-blue-600/20 blur-[100px] rounded-full" />
+    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
+      {/* Ambient background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-[90px]" />
+        <div className="absolute -right-10 bottom-0 h-72 w-72 rounded-full bg-pink-500/15 blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col h-full max-w-md mx-auto w-full p-4 gap-4">
-        {/* 1. COMPACT HEADER (Smart Space) */}
-        <header className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 backdrop-blur-md">
-          <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-tighter text-slate-400 font-bold">Step 1</span>
-            <span className="text-xs font-black text-emerald-400">BANK & BET</span>
+      <div className="relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
+        {/* Header & Financials */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col bg-white/5 border border-white/10 rounded-xl px-3 py-2 backdrop-blur-md">
+            <span className="text-[10px] uppercase tracking-tight text-slate-400 font-bold">Step 1</span>
+            <span className="text-xs font-black text-emerald-400">Bank & Bet</span>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] uppercase text-slate-400 block font-bold">Active Wallet</span>
-            <span className="text-sm font-black text-white">${state.balance.toFixed(2)}</span>
-          </div>
-        </header>
 
-        {/* 2. BANKING SECTION (Mobile Responsive Grid) */}
-        <section className="rounded-2xl border border-white/10 bg-white/12 p-2.5 shadow-soft backdrop-blur">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-stretch h-28">
-            <div className="rounded-xl border border-emerald-200/40 bg-white/10 p-2.5 text-white backdrop-blur flex flex-col justify-center items-center">
-              <BalanceDisplay balance={state.balance} />
-              <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Current</p>
-            </div>
-            <div className="rounded-xl border border-sky-200/40 bg-white/10 p-2.5 text-white backdrop-blur flex items-center justify-center">
-              <DepositWithdraw
-                onDeposit={(amount) => dispatch({ type: 'DEPOSIT', payload: amount })}
-                onWithdraw={(amount) => dispatch({ type: 'WITHDRAW', payload: amount })}
-              />
+          <div className="balance-card">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-[0.15em] text-amber-100/80 font-semibold">
+                  Current Balance
+                </span>
+                <span className="text-lg font-black text-white drop-shadow-[0_0_8px_rgba(251,191,36,0.45)]">
+                  ${state.balance.toFixed(2)}
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="Top up"
+                onClick={() => walletInputRef.current?.focus()}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-slate-900 font-black shadow-[0_0_14px_rgba(251,191,36,0.5)] hover:scale-105 active:scale-95 transition"
+              >
+                +
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* Action buttons row */}
+        <div className="action-btn-group">
+          <input
+            ref={walletInputRef}
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={1}
+            value={walletAmount}
+            onChange={(e) => setWalletAmount(e.target.value)}
+            className="wallet-input"
+            placeholder="Amount"
+          />
+          <button type="button" className="action-btn action-btn--deposit" onClick={() => handleWallet('DEPOSIT')}>
+            Deposit
+          </button>
+          <button type="button" className="action-btn action-btn--withdraw" onClick={() => handleWallet('WITHDRAW')}>
+            Withdraw
+          </button>
+        </div>
+
+        {/* Hero centerpiece */}
+        <section className="hero-welcome-container">
+          <div className="flex items-center gap-2 text-xl">
+            <span className="animate-float">🎱</span>
+            <span className="animate-float delay-150">🔢</span>
+            <span className="animate-float delay-300">🏆</span>
+            <span className="animate-float delay-500">✨</span>
+          </div>
+          <h1 className="hero-title">Welcome to Bingo Live!</h1>
+          <p className="hero-sub">Your Lucky Number is Waiting!</p>
         </section>
 
-        {/* 3. HERO SECTION (Minimalist Engagement) */}
-        <section className="flex-1 flex flex-col justify-center items-center text-center space-y-2">
-          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-            <span className="animate-pulse">💎</span>
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Bingo Deluxe Live</span>
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-white leading-none">
-            Welcome to <span className="text-emerald-500">Bingo</span>
-          </h1>
-          <p className="text-xs text-slate-400 max-w-[240px]">
-            The most beautiful bingo experience on mobile. Start winning now! 🚀
-          </p>
-        </section>
-
-        {/* 4. BET CONSOLE (The "Smart" Input) */}
-        <section className="bg-white/5 border border-white/10 rounded-[32px] p-5 space-y-4 backdrop-blur-xl shadow-2xl">
-          <div className="flex justify-between items-end">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Your Stake</label>
-            <span className="text-[10px] text-emerald-500 font-bold italic">Payout: 2x</span>
+        {/* Betting interface */}
+        <section className="bg-white/5 border border-white/10 rounded-4xl p-4 space-y-3 backdrop-blur-xl shadow-2xl bet-input-wrapper">
+          <div className="flex justify-between items-center">
+            <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Enter Bet</label>
+            <span className="text-[10px] text-emerald-400 font-bold">Payout: 2x</span>
           </div>
 
-          <div className="relative group">
+          <div className="relative">
             <input
               type="number"
               inputMode="numeric"
@@ -90,24 +117,31 @@ export default function Welcome() {
                 setBetInput(e.target.value);
               }}
               placeholder="0.00"
-              className="w-full bg-slate-950/50 border-2 border-white/10 group-focus-within:border-emerald-500/50 rounded-2xl h-14 px-4 text-xl font-black text-white outline-none transition-all placeholder:text-slate-700"
+              className="w-full h-12 rounded-xl bg-slate-950/60 border border-emerald-400/40 px-4 text-lg font-bold text-white outline-none bet-input neon-pulse"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold">$</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-200 font-bold">$</span>
           </div>
 
-          {/* Quick Info Labels */}
           <div className="flex gap-2">
-            <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
-              <p className="text-[8px] text-slate-500 uppercase font-black">Remaining</p>
-              <p className="text-xs font-bold text-slate-200">${(state.balance - parsedBet).toFixed(2)}</p>
-            </div>
-            <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
-              <p className="text-[8px] text-slate-500 uppercase font-black">Goal</p>
-              <p className="text-xs font-bold text-blue-400">Win ${(parsedBet * 2).toFixed(2)}</p>
-            </div>
+            {[10, 50].map((val) => (
+              <button
+                key={val}
+                type="button"
+                className="quick-chip"
+                onClick={() => setBetInput(String((parsedBet || 0) + val))}
+              >
+                +{val}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="quick-chip flex-1"
+              onClick={() => setBetInput(String(Math.floor(state.balance)))}
+            >
+              Max
+            </button>
           </div>
 
-          {/* Error Alert (Only shows if needed) */}
           {(parsedBet > state.balance || state.insufficientBalanceMessage) && (
             <div className="bg-rose-500/10 border border-rose-500/20 py-2 rounded-xl text-center">
               <span className="text-[10px] font-black text-rose-400 uppercase tracking-tight">
@@ -117,8 +151,8 @@ export default function Welcome() {
           )}
         </section>
 
-        {/* 5. ACTION BUTTON (Sticky Bottom Style) */}
-        <footer className="pb-4">
+        {/* CTA */}
+        <footer className="pb-2">
           <button
             onClick={handleStart}
             disabled={!canProceed}
@@ -139,6 +173,125 @@ export default function Welcome() {
           </p>
         </footer>
       </div>
+
+      <style jsx global>{`
+        .balance-card {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(251, 191, 36, 0.35);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 16px rgba(251, 191, 36, 0.35);
+          backdrop-filter: blur(10px);
+          border-radius: 18px;
+          padding: 10px 14px;
+          min-width: 170px;
+        }
+        .action-btn-group {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+        .wallet-input {
+          height: 42px;
+          border-radius: 12px;
+          padding: 0 10px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #e2e8f0;
+          font-weight: 700;
+          outline: none;
+        }
+        .wallet-input:focus {
+          border-color: #34d399;
+          box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+        }
+        .action-btn {
+          height: 42px;
+          border-radius: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          transition: transform 150ms ease, box-shadow 150ms ease;
+        }
+        .action-btn--deposit {
+          background: linear-gradient(135deg, #10b981, #34d399);
+          color: #041012;
+          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25);
+        }
+        .action-btn--withdraw {
+          background: linear-gradient(135deg, #334155, #1f2937);
+          color: #e2e8f0;
+          box-shadow: 0 10px 25px rgba(51, 65, 85, 0.35);
+        }
+        .action-btn:active {
+          transform: translateY(1px) scale(0.99);
+        }
+        .hero-welcome-container {
+          display: grid;
+          place-items: center;
+          text-align: center;
+          gap: 6px;
+          padding: 10px 0;
+        }
+        .hero-title {
+          font-size: 28px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: #fff;
+          text-shadow: 0 0 12px rgba(59, 130, 246, 0.45), 0 0 18px rgba(236, 72, 153, 0.35);
+        }
+        .hero-sub {
+          font-size: 13px;
+          color: #cbd5e1;
+        }
+        .bet-input-wrapper {
+          position: relative;
+          overflow: hidden;
+        }
+        .bet-input-wrapper::before {
+          content: '';
+          position: absolute;
+          inset: -30%;
+          background: conic-gradient(from 45deg, rgba(59,130,246,0.25), rgba(236,72,153,0.25), rgba(16,185,129,0.25), rgba(59,130,246,0.25));
+          filter: blur(28px);
+          opacity: 0.4;
+          pointer-events: none;
+        }
+        .bet-input {
+          box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
+        }
+        .neon-pulse {
+          animation: neon 2s ease-in-out infinite;
+        }
+        @keyframes neon {
+          0%, 100% { box-shadow: 0 0 12px rgba(52, 211, 153, 0.25); }
+          50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.35); }
+        }
+        .quick-chip {
+          min-width: 70px;
+          height: 36px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.06);
+          color: #e2e8f0;
+          font-weight: 800;
+          font-size: 12px;
+          letter-spacing: 0.05em;
+          transition: transform 120ms ease, box-shadow 150ms ease;
+        }
+        .quick-chip:hover { box-shadow: 0 8px 18px rgba(59,130,246,0.25); }
+        .quick-chip:active { transform: translateY(1px); }
+        .animate-float {
+          animation: floaty 3s ease-in-out infinite;
+        }
+        .delay-150 { animation-delay: 0.15s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-500 { animation-delay: 0.5s; }
+        @keyframes floaty {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+      `}</style>
     </main>
   );
 }

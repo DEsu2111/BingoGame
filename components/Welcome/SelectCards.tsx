@@ -23,7 +23,7 @@ export default function SelectCards() {
       {/* HIGH-CONTRAST BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,#10b98125,transparent_60%)]" />
-        <div className="absolute bottom-0 left-0 w-full h-[30%] bg-gradient-to-t from-emerald-900/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-full h-[30%] bg-linear-to-t from-emerald-900/10 to-transparent" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full max-w-md mx-auto w-full px-4 pt-6 pb-4">
@@ -51,7 +51,7 @@ export default function SelectCards() {
         </header>
 
         {/* CARDS CONTAINER: Max visibility focus */}
-        <section className="flex-[2] relative rounded-[2rem] border-2 border-white/5 bg-slate-900/20 backdrop-blur-md overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <section className="flex-2 relative rounded-4xl border-2 border-white/5 bg-slate-900/20 backdrop-blur-md overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           {/* Subtle grid background to make cards look "anchored" */}
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
           
@@ -64,8 +64,8 @@ export default function SelectCards() {
           </div>
           
           {/* Strong shadow gradients to focus eye on center cards */}
-          <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#020408] to-transparent opacity-90 pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#020408] to-transparent opacity-90 pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-10 bg-linear-to-b from-[#020408] to-transparent opacity-90 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-[#020408] to-transparent opacity-90 pointer-events-none" />
         </section>
 
         {/* INTERACTIVE FOOTER */}
@@ -91,7 +91,7 @@ export default function SelectCards() {
             type="button"
             onClick={handleBegin}
             disabled={!canBegin}
-            className={`group relative w-full h-20 rounded-[1.5rem] font-black uppercase tracking-[0.2em] transition-all duration-500 active:scale-[0.97]
+            className={`group relative w-full h-20 rounded-3xl font-black uppercase tracking-[0.2em] transition-all duration-500 active:scale-[0.97]
               ${canBegin 
                 ? 'bg-emerald-500 text-black shadow-[0_20px_40px_rgba(16,185,129,0.3)]' 
                 : 'bg-slate-900 text-slate-600 border border-white/5'
@@ -108,7 +108,7 @@ export default function SelectCards() {
             
             {/* Shimmer overlay for when ready */}
             {canBegin && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-shimmer" />
             )}
           </button>
           

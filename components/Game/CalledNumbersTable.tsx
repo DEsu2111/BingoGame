@@ -74,7 +74,7 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
 
       <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-slate-800/60">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 via-sky-400 via-emerald-400 to-emerald-500 transition-all duration-300"
+          className="h-full bg-linear-to-r from-blue-500 via-sky-400 to-emerald-500 transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -86,7 +86,7 @@ export default function CalledNumbersTable({ called, currentCall, cellRefs }: Ca
               {['B', 'I', 'N', 'G', 'O'].map((letter) => (
                 <th
                   key={letter}
-                  className="sticky top-0 z-10 bg-slate-900/80 px-2 py-1 text-xs font-bold uppercase tracking-[0.1em] text-slate-300 backdrop-blur"
+                  className="sticky top-0 z-10 bg-slate-900/80 px-2 py-1 text-xs font-bold uppercase tracking-widest text-slate-300 backdrop-blur"
                 >
                   {letter}
                 </th>
