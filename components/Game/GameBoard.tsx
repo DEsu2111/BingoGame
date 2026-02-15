@@ -1,148 +1,97 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
-import CalledNumbersTable from './CalledNumbersTable';
-import PlayerCards from './PlayerCards';
+import MiniCard from './MiniCard';
 import WinBlinker from './WinBlinker';
 
 export default function GameBoard() {
   const { state, dispatch } = useGame();
-  const cellRefs = useRef<Map<number, HTMLTableCellElement>>(new Map());
-  const drawRef = useRef<HTMLDivElement | null>(null);
+  const cellRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  const tip = useMemo(() => {
-    if (state.winStatus === 'win') return 'BINGO! Cash it in and run it back.';
-    if (state.calledNumbers.size >= 4) return 'On the brink—watch diagonals and center lines.';
-    if (state.calledNumbers.size >= 2) return 'Momentum up—keep marking fast.';
-    return 'Focus early—precision beats speed.';
-  }, [state.calledNumbers.size, state.winStatus]);
+  const numbers = useMemo(() => Array.from({ length: 75 }, (_, i) => i + 1), []);
+  const calledSet = state.calledNumbers;
+  const lastCalled = state.currentCall;
+  const firstFive = state.calledNumbersList.slice(0, 5);
 
-  const currentPosition = useMemo(() => {
-    if (state.currentCall === null) return null;
-    for (let cardIndex = 0; cardIndex < state.playerCards.length; cardIndex += 1) {
-      const card = state.playerCards[cardIndex];
-      for (let r = 0; r < card.length; r += 1) {
-        for (let c = 0; c < card[r].length; c += 1) {
-          if (card[r][c].value === state.currentCall) {
-            return { cardIndex, row: r + 1, col: c + 1 };
-          }
-        }
-      }
-    }
-    return null;
-  }, [state.currentCall, state.playerCards]);
-
-  useEffect(() => {
-    if (!state.currentCall || typeof window === 'undefined') return;
-    const cell = cellRefs.current.get(state.currentCall);
-    const drawEl = drawRef.current;
-    if (!cell || !drawEl) return;
-
-    const from = cell.getBoundingClientRect();
-    const to = drawEl.getBoundingClientRect();
-    const clone = cell.cloneNode(true) as HTMLElement;
-    clone.style.cssText = `
-      position: fixed; left: ${from.left}px; top: ${from.top}px;
-      width: ${from.width}px; height: ${from.height}px;
-      z-index: 100; transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-      background: #22d3ee; border-radius: 50%; color: #0f172a; display: flex;
-      align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 0 18px rgba(16,185,129,0.45);
-    `;
-    document.body.appendChild(clone);
-    requestAnimationFrame(() => {
-      clone.style.transform = `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(1.6)`;
-      clone.style.opacity = '0';
-    });
-    const cleanup = setTimeout(() => clone.remove(), 380);
-    return () => clearTimeout(cleanup);
-  }, [state.currentCall]);
-
-  const lastFive = state.calledNumbersList.slice(0, 5);
+  const selectedCards = useMemo(() => {
+    const picked = state.selectedCardIndices.slice(0, 2).map((idx) => state.playerCards[idx]).filter(Boolean);
+    if (picked.length === 0 && state.playerCards.length) return state.playerCards.slice(0, 2);
+    return picked;
+  }, [state.playerCards, state.selectedCardIndices]);
 
   return (
-    <main className="game-container">
+    <main className="game-container no-scroll-viewport">
       {state.winStatus === 'win' && <WinBlinker />}
 
-      <div className="absolute inset-0 pointer-events-none opacity-25">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-emerald-500/10 blur-[120px] rounded-full" />
-      </div>
-
-      {/* Live Caller */}
-      <header className="live-status-bar">
-        <div className="flex items-center gap-3">
-          <div className="live-ball">
-            <div ref={drawRef} className="live-ball__inner">
-              {state.currentCall ?? '...'}
-            </div>
-          </div>
-          <div className="history-strip">
-            {lastFive.length
-              ? lastFive.map((num) => (
-                  <span key={num} className="history-ball">
+      <div className="game-body">
+        {/* Matrix (left) */}
+        <section className="matrix-zone">
+          {firstFive.length > 0 && (
+            <div className="first-five-strip">
+              <span className="first-five-label">First 5</span>
+              <div className="first-five-balls">
+                {firstFive.map((num) => (
+                  <span key={num} className="first-five-ball">
                     {num}
                   </span>
-                ))
-              : <span className="text-[10px] text-slate-400">Waiting…</span>}
-          </div>
-        </div>
-        <div className="flex gap-3 items-center">
-          <div className="live-tip">
-            <p className="text-[10px] font-black uppercase text-emerald-300 mb-1">{state.winStatus === 'win' ? 'WINNER!' : 'Status'}</p>
-            <p className="text-xs font-bold leading-tight text-white line-clamp-2">{tip}</p>
-          </div>
-          <button
-            onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
-            className="px-4 py-2 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-          >
-            Restart
-          </button>
-        </div>
-      </header>
-
-      {/* Main layout */}
-      <div className="flex-1 w-full px-2 pb-20 md:pb-6">
-        <div className="grid gap-2 h-full md:grid-cols-3">
-          <section className="bingo-card-wrapper">
-            <div className="section-header">Called Numbers</div>
-            <div className="flex-1 overflow-y-auto no-scrollbar p-2">
-              <CalledNumbersTable called={state.calledNumbers} currentCall={state.currentCall} cellRefs={cellRefs} />
+                ))}
+              </div>
             </div>
-          </section>
+          )}
+          <div className="matrix-header">
+            <div className="live-chip">🎱 {lastCalled ?? '…'}</div>
+          </div>
+          <div className="matrix-grid-75">
+            {numbers.map((num) => {
+              const called = calledSet.has(num);
+              const pulse = lastCalled === num;
+              return (
+                <div
+                  key={num}
+                  ref={(el) => {
+                    if (el) cellRefs.current.set(num, el);
+                  }}
+                  className={`tile ${called ? 'tile-called' : 'tile-idle'} ${pulse ? 'tile-pulse' : ''}`}
+                >
+                  {num}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-          <section className="bingo-card-wrapper md:col-span-1">
-            <div className="section-header">Your Cards</div>
-            <div className="flex-1 overflow-y-auto no-scrollbar p-2">
-              <PlayerCards cards={state.playerCards} />
+        {/* Cards (right) */}
+        <section className="cards-zone">
+          <div className="cards-header">
+            <span className="cards-header__label">Last Call</span>
+            <span className="cards-header__pill">{lastCalled ?? '—'}</span>
+          </div>
+          {selectedCards.map((card, idx) => (
+            <div key={idx} className="card-slot">
+              <MiniCard
+                card={card}
+                currentCall={state.currentCall}
+                onCellClick={(row, col) =>
+                  dispatch({ type: 'MARK_CELL', payload: { cardIndex: state.playerCards.indexOf(card), row, col } })
+                }
+                disabled={!state.gameActive || state.winStatus !== 'none'}
+              />
             </div>
-          </section>
-
-          <section className="bingo-card-wrapper hidden md:flex">
-            <div className="section-header">Chat</div>
-            <div className="flex-1 p-3 text-xs text-slate-300">Chat coming soon.</div>
-          </section>
-        </div>
+          ))}
+          {selectedCards.length < 2 &&
+            Array.from({ length: 2 - selectedCards.length }).map((_, idx) => (
+              <div key={`placeholder-${idx}`} className="card-slot placeholder-slot">
+                <span className="text-xs text-slate-400">Select card</span>
+              </div>
+            ))}
+        </section>
       </div>
 
-      {/* Bottom action bar */}
-      <div className="action-dock">
-        <div className="dock-icons">
-          <button className="dock-icon">🤖<span>Auto</span></button>
-          <button className="dock-icon">⚡<span>Turbo</span></button>
-          <button className="dock-icon">💬<span>Chat</span></button>
-        </div>
-        <button
-          className={`bingo-cta ${state.winStatus === 'win' ? 'bingo-cta--pulse' : ''}`}
-          onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
-        >
-          BINGO
-        </button>
-      </div>
-
-      {state.winStatus === 'win' && (
-        <div className="bingo-overlay">
-          🎊 BINGO! 🎊
+      {/* Floating last ball */}
+      {lastCalled !== null && (
+        <div className="last-ball">
+          <span className="last-ball__inner">{lastCalled}</span>
         </div>
       )}
 
@@ -151,170 +100,206 @@ export default function GameBoard() {
           position: fixed;
           inset: 0;
           display: flex;
-          flex-direction: column;
-          background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.12), transparent 45%), radial-gradient(circle at 80% 15%, rgba(236,72,153,0.12), transparent 45%), linear-gradient(135deg, #0b1024, #0d0b1f 45%, #120f2c);
+          background: linear-gradient(135deg, #050914, #0b1024 50%, #0f132e);
           color: #e2e8f0;
           overflow: hidden;
+          padding: 4px;
         }
-        .live-status-bar {
-          position: relative;
-          z-index: 10;
+        .no-scroll-viewport { overflow: hidden; }
+        .game-body {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          backdrop-filter: blur(16px);
-          background: rgba(7,9,18,0.65);
+          gap: 4px;
+          width: 100%;
+          height: 100%;
         }
-        .live-ball {
-          width: 88px;
-          height: 88px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          background: radial-gradient(circle at 30% 30%, #ffffff, #d9d9e0, #a1a1b5);
-          box-shadow: 0 10px 28px rgba(0,0,0,0.35), 0 0 18px rgba(16,185,129,0.3);
+        .matrix-zone {
+          flex: 0 0 55%;
+          max-width: 55%;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 8px;
+          padding: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
         }
-        .live-ball__inner {
-          width: 70px;
-          height: 70px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          font-size: 28px;
-          font-weight: 900;
-          color: #0f172a;
-          background: radial-gradient(circle at 30% 30%, #fff, #fef4d7, #facc15);
-          border: 4px solid #10b981;
-          box-shadow: inset 0 0 8px rgba(0,0,0,0.18);
-        }
-        .history-strip {
+        .first-five-strip {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.08);
+          padding: 4px 6px;
+          border-radius: 8px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
         }
-        .history-ball {
-          width: 32px;
-          height: 32px;
+        .first-five-label {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #cbd5e1;
+        }
+        .first-five-balls {
+          display: flex;
+          gap: 4px;
+        }
+        .first-five-ball {
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
           display: grid;
           place-items: center;
+          font-size: 11px;
+          font-weight: 800;
+          color: #0f172a;
+          background: radial-gradient(circle at 30% 30%, #fff, #fef4d7, #facc15);
+          box-shadow: 0 6px 14px rgba(0,0,0,0.25), 0 0 8px rgba(250,204,21,0.35);
+        }
+        .matrix-header {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .live-chip {
+          min-width: 60px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 30%, #fff7d1, #facc15);
+          color: #0f172a;
           font-weight: 800;
           font-size: 12px;
-          color: #0f172a;
-          background: radial-gradient(circle at 30% 30%, #f8fafc, #cbd5e1);
-          box-shadow: 0 6px 14px rgba(0,0,0,0.25);
-        }
-        .live-tip { max-width: 200px; }
-        .bingo-card-wrapper {
-          display: flex;
-          flex-direction: column;
-          border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.04);
-          backdrop-filter: blur(10px);
-          min-height: 0;
-          overflow: hidden;
-        }
-        .section-header {
-          padding: 10px;
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #cbd5e1;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.03);
+          box-shadow: 0 8px 20px rgba(250, 204, 21, 0.35);
           text-align: center;
         }
-        .action-dock {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          padding: 10px 14px;
-          background: rgba(7,9,18,0.9);
-          border-top: 1px solid rgba(255,255,255,0.08);
-          backdrop-filter: blur(12px);
-        }
-        .dock-icons { display: flex; gap: 8px; }
-        .dock-icon {
-          min-width: 70px;
-          height: 46px;
-          border-radius: 14px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: #e2e8f0;
-          font-weight: 800;
-          font-size: 12px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
+        .matrix-grid-75 {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-rows: repeat(15, 1fr);
           gap: 2px;
-        }
-        .bingo-cta {
           flex: 1;
-          height: 50px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #facc15, #f59e0b);
-          color: #0f172a;
-          font-weight: 900;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          box-shadow: 0 12px 28px rgba(250,204,21,0.35);
         }
-        .bingo-cta--pulse { animation: pulseGold 1.4s infinite; }
-        @keyframes pulseGold {
-          0%, 100% { box-shadow: 0 12px 28px rgba(250,204,21,0.35); transform: translateY(0); }
-          50% { box-shadow: 0 16px 36px rgba(250,204,21,0.55); transform: translateY(-2px); }
-        }
-        .bingo-overlay {
-          position: fixed;
-          inset: 0;
+        .tile {
           display: grid;
           place-items: center;
-          background: rgba(0,0,0,0.45);
-          color: #facc15;
-          font-size: 32px;
+          border-radius: 6px;
+          font-size: clamp(10px, 1.7vw, 12px);
+          font-weight: 800;
+          min-height: 0;
+          min-width: 0;
+          border: 1px solid rgba(255,255,255,0.06);
+          line-height: 1;
+        }
+        .tile-idle {
+          color: #94a3b8;
+          background: rgba(255,255,255,0.04);
+        }
+        .tile-called {
+          color: #0f172a;
+          background: linear-gradient(135deg, #facc15, #f97316);
+          box-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
+        }
+        .tile-pulse { animation: pulse-tile 0.6s ease; }
+        @keyframes pulse-tile {
+          0% { transform: scale(0.9); box-shadow: 0 0 6px rgba(14,165,233,0.3); }
+          50% { transform: scale(1.05); box-shadow: 0 0 14px rgba(250,204,21,0.7); }
+          100% { transform: scale(1); }
+        }
+        .cards-zone {
+          flex: 0 0 45%;
+          max-width: 45%;
+          display: flex;
+          display: grid;
+          grid-template-rows: auto 1fr 1fr;
+          gap: 3px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 8px;
+          padding: 3px;
+          min-height: 0;
+        }
+        .cards-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 6px;
+          border-radius: 6px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
+          margin-bottom: 4px;
+          gap: 6px;
+        }
+        .cards-header__label {
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #cbd5e1;
+        }
+        .cards-header__pill {
+          min-width: 42px;
+          text-align: center;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 30%, #fff7d1, #facc15);
+          color: #0f172a;
           font-weight: 900;
-          text-shadow: 0 0 18px rgba(250,204,21,0.7);
-          z-index: 60;
-          backdrop-filter: blur(4px);
+          box-shadow: 0 8px 18px rgba(250,204,21,0.35);
         }
-        .number-cell {
-          position: relative;
-          background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-          box-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
+        .card-slot {
+          min-height: 0;
+          border-radius: 6px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+          overflow: hidden;
+          display: flex;
         }
-        .bingo-daub {
-          box-shadow: 0 0 0 3px rgba(16,185,129,0.7), 0 0 18px rgba(236,72,153,0.6);
-          animation: pop 180ms ease;
+        .card-slot > * { flex: 1; height: 100%; }
+        .placeholder-slot { display: grid; place-items: center; }
+        /* Force bingo cards to scale to available height */
+        .card-slot .bingo-card {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
-        .bingo-daub--pulse { animation: pop 180ms ease, neonPop 1.2s ease-in-out infinite; }
-        @keyframes pop { from { transform: scale(0.9); } to { transform: scale(1); } }
-        @keyframes neonPop {
-          0%,100% { box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
-          50% { box-shadow: 0 0 0 6px rgba(236,72,153,0.25); }
+        .card-slot .bingo-head { flex-shrink: 0; }
+        .card-slot .bingo-grid { flex: 1; }
+
+        .last-ball {
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          z-index: 50;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .last-ball__inner {
+          display: grid;
+          place-items: center;
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, #fff, #fef4d7, #facc15);
+          color: #0f172a;
+          font-weight: 900;
+          font-size: 16px;
+          box-shadow: 0 10px 26px rgba(0,0,0,0.35), 0 0 12px rgba(250,204,21,0.45);
+        }
+
         @media (max-width: 768px) {
-          .live-status-bar { flex-direction: column; align-items: flex-start; }
-          .dock-icons { width: 200px; }
-          .bingo-cta { flex: 1; }
-          .grid { grid-template-columns: 1fr !important; }
-          .bingo-card-wrapper.hidden { display: none !important; }
+          .game-body { flex-direction: row; }
+          .matrix-zone { flex: 0 0 55%; max-width: 55%; padding: 3px; }
+          .cards-zone { flex: 0 0 45%; max-width: 45%; padding: 3px; gap: 3px; grid-template-rows: auto 1fr 1fr; }
+        }
+        @media (orientation: landscape) and (max-width: 900px) {
+          .game-body { flex-direction: column; }
+          .matrix-zone {
+            flex: 0 0 40%;
+            max-width: 100%;
+            height: 38vh;
+          }
+          .cards-zone {
+            flex: 1;
+            height: 62vh;
+          }
+          .dual-card-stack { flex-direction: row; }
+          .card-slot { flex: 1; }
         }
       `}</style>
     </main>
