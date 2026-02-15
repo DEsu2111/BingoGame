@@ -31,7 +31,6 @@ export default function Welcome() {
       </div>
 
       <div className="relative z-10 flex flex-col h-full max-w-md mx-auto w-full p-4 gap-4">
-        
         {/* 1. COMPACT HEADER (Smart Space) */}
         <header className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 backdrop-blur-md">
           <div className="flex flex-col">
@@ -45,18 +44,20 @@ export default function Welcome() {
         </header>
 
         {/* 2. BANKING SECTION (Mobile Responsive Grid) */}
-        <div className="grid grid-cols-2 gap-3 h-28">
-          <div className="bg-gradient-to-br from-white/10 to-transparent border border-white/10 rounded-3xl p-3 flex flex-col justify-center items-center shadow-xl">
-            <BalanceDisplay balance={state.balance} />
-            <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Current</p>
+        <section className="rounded-2xl border border-white/10 bg-white/12 p-2.5 shadow-soft backdrop-blur">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-stretch h-28">
+            <div className="rounded-xl border border-emerald-200/40 bg-white/10 p-2.5 text-white backdrop-blur flex flex-col justify-center items-center">
+              <BalanceDisplay balance={state.balance} />
+              <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Current</p>
+            </div>
+            <div className="rounded-xl border border-sky-200/40 bg-white/10 p-2.5 text-white backdrop-blur flex items-center justify-center">
+              <DepositWithdraw
+                onDeposit={(amount) => dispatch({ type: 'DEPOSIT', payload: amount })}
+                onWithdraw={(amount) => dispatch({ type: 'WITHDRAW', payload: amount })}
+              />
+            </div>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-2 flex items-center justify-center backdrop-blur-sm">
-            <DepositWithdraw
-              onDeposit={(amount) => dispatch({ type: 'DEPOSIT', payload: amount })}
-              onWithdraw={(amount) => dispatch({ type: 'WITHDRAW', payload: amount })}
-            />
-          </div>
-        </div>
+        </section>
 
         {/* 3. HERO SECTION (Minimalist Engagement) */}
         <section className="flex-1 flex flex-col justify-center items-center text-center space-y-2">
@@ -75,10 +76,10 @@ export default function Welcome() {
         {/* 4. BET CONSOLE (The "Smart" Input) */}
         <section className="bg-white/5 border border-white/10 rounded-[32px] p-5 space-y-4 backdrop-blur-xl shadow-2xl">
           <div className="flex justify-between items-end">
-             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Your Stake</label>
-             <span className="text-[10px] text-emerald-500 font-bold italic">Payout: 2x</span>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Your Stake</label>
+            <span className="text-[10px] text-emerald-500 font-bold italic">Payout: 2x</span>
           </div>
-          
+
           <div className="relative group">
             <input
               type="number"
@@ -96,14 +97,14 @@ export default function Welcome() {
 
           {/* Quick Info Labels */}
           <div className="flex gap-2">
-             <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
-                <p className="text-[8px] text-slate-500 uppercase font-black">Remaining</p>
-                <p className="text-xs font-bold text-slate-200">${(state.balance - parsedBet).toFixed(2)}</p>
-             </div>
-             <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
-                <p className="text-[8px] text-slate-500 uppercase font-black">Goal</p>
-                <p className="text-xs font-bold text-blue-400">Win ${(parsedBet * 2).toFixed(2)}</p>
-             </div>
+            <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
+              <p className="text-[8px] text-slate-500 uppercase font-black">Remaining</p>
+              <p className="text-xs font-bold text-slate-200">${(state.balance - parsedBet).toFixed(2)}</p>
+            </div>
+            <div className="flex-1 bg-white/5 rounded-xl p-2 border border-white/5">
+              <p className="text-[8px] text-slate-500 uppercase font-black">Goal</p>
+              <p className="text-xs font-bold text-blue-400">Win ${(parsedBet * 2).toFixed(2)}</p>
+            </div>
           </div>
 
           {/* Error Alert (Only shows if needed) */}
@@ -137,7 +138,6 @@ export default function Welcome() {
             Fair Play Guaranteed • Secured 256-bit
           </p>
         </footer>
-
       </div>
     </main>
   );
