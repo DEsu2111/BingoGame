@@ -39,10 +39,10 @@ export default function MiniCard({ card, currentCall, onCellClick, disabled }: M
             const rowHint = matchCoords && matchCoords.r === r;
             const colHint = matchCoords && matchCoords.c === c;
             const base = [
-              'bingo-cell',
+              'bingo-cell number-cell',
               free && 'bingo-free',
-              cell.marked && 'bingo-marked',
-              isCurrent && 'bingo-current',
+              cell.marked && 'bingo-marked bingo-daub',
+              isCurrent && 'bingo-current bingo-daub--pulse',
               disabled && 'bingo-disabled',
               rowHint && 'bingo-row-hint',
               colHint && 'bingo-col-hint',

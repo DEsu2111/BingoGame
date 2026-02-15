@@ -11,21 +11,19 @@ export default function GameBoard() {
   const cellRefs = useRef<Map<number, HTMLTableCellElement>>(new Map());
   const drawRef = useRef<HTMLDivElement | null>(null);
 
-  // Tips that sound like a game narrator
   const tip = useMemo(() => {
-    if (state.winStatus === 'win') return 'JACKPOT! Collect your spoils. 🏆';
-    if (state.calledNumbers.size >= 4) return 'CRUNCH TIME! One number away... ⚡';
-    return 'EYES UP! Watch the ball drop. 🎱';
+    if (state.winStatus === 'win') return 'BINGO! Cash it in and run it back.';
+    if (state.calledNumbers.size >= 4) return 'On the brink—watch diagonals and center lines.';
+    if (state.calledNumbers.size >= 2) return 'Momentum up—keep marking fast.';
+    return 'Focus early—precision beats speed.';
   }, [state.calledNumbers.size, state.winStatus]);
 
-  // Logic to track where the current number sits in your cards
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const currentPosition = useMemo(() => {
     if (state.currentCall === null) return null;
-    for (let cardIndex = 0; cardIndex < state.playerCards.length; cardIndex++) {
+    for (let cardIndex = 0; cardIndex < state.playerCards.length; cardIndex += 1) {
       const card = state.playerCards[cardIndex];
-      for (let r = 0; r < card.length; r++) {
-        for (let c = 0; c < card[r].length; c++) {
+      for (let r = 0; r < card.length; r += 1) {
+        for (let c = 0; c < card[r].length; c += 1) {
           if (card[r][c].value === state.currentCall) {
             return { cardIndex, row: r + 1, col: c + 1 };
           }
@@ -35,7 +33,6 @@ export default function GameBoard() {
     return null;
   }, [state.currentCall, state.playerCards]);
 
-  // Particle/Animation effect for when a new number is drawn
   useEffect(() => {
     if (!state.currentCall || typeof window === 'undefined') return;
     const cell = cellRefs.current.get(state.currentCall);
@@ -45,137 +42,279 @@ export default function GameBoard() {
     const from = cell.getBoundingClientRect();
     const to = drawEl.getBoundingClientRect();
     const clone = cell.cloneNode(true) as HTMLElement;
-    
     clone.style.cssText = `
       position: fixed; left: ${from.left}px; top: ${from.top}px;
       width: ${from.width}px; height: ${from.height}px;
-      z-index: 100; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      background: #10b981; border-radius: 50%; color: white; display: flex;
-      align-items: center; justify-content: center; font-weight: bold;
+      z-index: 100; transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      background: #22d3ee; border-radius: 50%; color: #0f172a; display: flex;
+      align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 0 18px rgba(16,185,129,0.45);
     `;
     document.body.appendChild(clone);
-
     requestAnimationFrame(() => {
-      clone.style.transform = `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(2)`;
+      clone.style.transform = `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(1.6)`;
       clone.style.opacity = '0';
     });
-
-    const cleanup = setTimeout(() => clone.remove(), 400);
+    const cleanup = setTimeout(() => clone.remove(), 380);
     return () => clearTimeout(cleanup);
   }, [state.currentCall]);
 
+  const lastFive = state.calledNumbersList.slice(0, 5);
+
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#05070a] text-slate-100 overflow-hidden select-none">
+    <main className="game-container">
       {state.winStatus === 'win' && <WinBlinker />}
 
-      {/* BACKGROUND FX */}
-      <div className="absolute inset-0 pointer-events-none opacity-20">
+      <div className="absolute inset-0 pointer-events-none opacity-25">
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-emerald-500/10 blur-[120px] rounded-full" />
       </div>
 
-      {/* 1. TOP HUD (Smarter & More Interactive) */}
-      <header className="relative z-20 flex flex-col gap-3 p-4 bg-slate-900/40 border-b border-white/5 backdrop-blur-xl shadow-2xl">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-4 items-center">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Balance</span>
-              <span className="text-lg font-black text-white">${state.balance.toFixed(2)}</span>
-            </div>
-            <div className="h-8 w-px bg-white/10" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Payout</span>
-              <span className="text-lg font-black text-emerald-400">x{(state.betAmount * 2).toFixed(0)}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
-              className="px-4 py-2 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-            >
-              Restart Run
-            </button>
-          </div>
-        </div>
-
-        {/* CURRENT DRAW ORB */}
-        <div className="flex items-center justify-center gap-6 py-2">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-emerald-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
-            <div
-              ref={drawRef}
-              className="relative h-20 w-20 flex items-center justify-center rounded-full bg-linear-to-br from-white to-slate-300 border-4 border-emerald-500 text-3xl font-black text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-bounce-subtle"
-            >
+      {/* Live Caller */}
+      <header className="live-status-bar">
+        <div className="flex items-center gap-3">
+          <div className="live-ball">
+            <div ref={drawRef} className="live-ball__inner">
               {state.currentCall ?? '...'}
             </div>
           </div>
-
-          <div className="flex flex-col justify-center max-w-37.5">
-             <p className="text-[10px] font-black uppercase text-emerald-500 mb-1">{state.winStatus === 'win' ? 'WINNER!' : 'Status'}</p>
-             <p className="text-xs font-bold leading-tight text-white line-clamp-2">{tip}</p>
+          <div className="history-strip">
+            {lastFive.length
+              ? lastFive.map((num) => (
+                  <span key={num} className="history-ball">
+                    {num}
+                  </span>
+                ))
+              : <span className="text-[10px] text-slate-400">Waiting…</span>}
           </div>
+        </div>
+        <div className="flex gap-3 items-center">
+          <div className="live-tip">
+            <p className="text-[10px] font-black uppercase text-emerald-300 mb-1">{state.winStatus === 'win' ? 'WINNER!' : 'Status'}</p>
+            <p className="text-xs font-bold leading-tight text-white line-clamp-2">{tip}</p>
+          </div>
+          <button
+            onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
+            className="px-4 py-2 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+          >
+            Restart
+          </button>
         </div>
       </header>
 
-      {/* 2. MAIN BATTLE GRID (Equal Height Split) */}
-      <div className="relative z-10 flex flex-1 w-full gap-1 overflow-hidden p-1 bg-black/20">
-        
-        {/* Left Side: The "Global" Board */}
-        <section className="flex-1 min-w-0 h-full rounded-2xl bg-white/2 border border-white/5 overflow-hidden flex flex-col">
-          <div className="p-2 border-b border-white/5 bg-white/5">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Called Numbers</h3>
-          </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-1">
-            <CalledNumbersTable 
-              called={state.calledNumbers} 
-              currentCall={state.currentCall} 
-              cellRefs={cellRefs} 
-            />
-          </div>
-        </section>
+      {/* Main layout */}
+      <div className="flex-1 w-full px-2 pb-20 md:pb-6">
+        <div className="grid gap-2 h-full md:grid-cols-3">
+          <section className="bingo-card-wrapper">
+            <div className="section-header">Called Numbers</div>
+            <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+              <CalledNumbersTable called={state.calledNumbers} currentCall={state.currentCall} cellRefs={cellRefs} />
+            </div>
+          </section>
 
-        {/* Right Side: Player's Live Cards */}
-        <section className="flex-1 min-w-0 h-full rounded-2xl bg-emerald-500/3 border border-emerald-500/10 overflow-hidden flex flex-col">
-          <div className="p-2 border-b border-emerald-500/10 bg-emerald-500/5 flex justify-between items-center px-4">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400">Your Cards</h3>
-            {currentPosition && (
-              <span className="text-[8px] font-black text-blue-400 uppercase animate-pulse">
-                Match: Card {currentPosition.cardIndex + 1}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-1">
-            <PlayerCards cards={state.playerCards} />
-          </div>
-        </section>
+          <section className="bingo-card-wrapper md:col-span-1">
+            <div className="section-header">Your Cards</div>
+            <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+              <PlayerCards cards={state.playerCards} />
+            </div>
+          </section>
+
+          <section className="bingo-card-wrapper hidden md:flex">
+            <div className="section-header">Chat</div>
+            <div className="flex-1 p-3 text-xs text-slate-300">Chat coming soon.</div>
+          </section>
+        </div>
       </div>
 
-      {/* 3. MOBILE BINGO INDICATOR (Floating Toast) */}
-      {currentPosition && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-blue-600 px-6 py-2 rounded-full border border-blue-400 shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
-           <span className="text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap">
-             🎯 Match Found: Row {currentPosition.row}
-           </span>
+      {/* Bottom action bar */}
+      <div className="action-dock">
+        <div className="dock-icons">
+          <button className="dock-icon">🤖<span>Auto</span></button>
+          <button className="dock-icon">⚡<span>Turbo</span></button>
+          <button className="dock-icon">💬<span>Chat</span></button>
+        </div>
+        <button
+          className={`bingo-cta ${state.winStatus === 'win' ? 'bingo-cta--pulse' : ''}`}
+          onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
+        >
+          BINGO
+        </button>
+      </div>
+
+      {state.winStatus === 'win' && (
+        <div className="bingo-overlay">
+          🎊 BINGO! 🎊
         </div>
       )}
 
       <style jsx global>{`
+        .game-container {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.12), transparent 45%), radial-gradient(circle at 80% 15%, rgba(236,72,153,0.12), transparent 45%), linear-gradient(135deg, #0b1024, #0d0b1f 45%, #120f2c);
+          color: #e2e8f0;
+          overflow: hidden;
+        }
+        .live-status-bar {
+          position: relative;
+          z-index: 10;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          backdrop-filter: blur(16px);
+          background: rgba(7,9,18,0.65);
+        }
+        .live-ball {
+          width: 88px;
+          height: 88px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          background: radial-gradient(circle at 30% 30%, #ffffff, #d9d9e0, #a1a1b5);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.35), 0 0 18px rgba(16,185,129,0.3);
+        }
+        .live-ball__inner {
+          width: 70px;
+          height: 70px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font-size: 28px;
+          font-weight: 900;
+          color: #0f172a;
+          background: radial-gradient(circle at 30% 30%, #fff, #fef4d7, #facc15);
+          border: 4px solid #10b981;
+          box-shadow: inset 0 0 8px rgba(0,0,0,0.18);
+        }
+        .history-strip {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+        .history-ball {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font-weight: 800;
+          font-size: 12px;
+          color: #0f172a;
+          background: radial-gradient(circle at 30% 30%, #f8fafc, #cbd5e1);
+          box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+        }
+        .live-tip { max-width: 200px; }
+        .bingo-card-wrapper {
+          display: flex;
+          flex-direction: column;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.04);
+          backdrop-filter: blur(10px);
+          min-height: 0;
+          overflow: hidden;
+        }
+        .section-header {
+          padding: 10px;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #cbd5e1;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.03);
+          text-align: center;
+        }
+        .action-dock {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 14px;
+          background: rgba(7,9,18,0.9);
+          border-top: 1px solid rgba(255,255,255,0.08);
+          backdrop-filter: blur(12px);
+        }
+        .dock-icons { display: flex; gap: 8px; }
+        .dock-icon {
+          min-width: 70px;
+          height: 46px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: #e2e8f0;
+          font-weight: 800;
+          font-size: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+        }
+        .bingo-cta {
+          flex: 1;
+          height: 50px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #facc15, #f59e0b);
+          color: #0f172a;
+          font-weight: 900;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          box-shadow: 0 12px 28px rgba(250,204,21,0.35);
+        }
+        .bingo-cta--pulse { animation: pulseGold 1.4s infinite; }
+        @keyframes pulseGold {
+          0%, 100% { box-shadow: 0 12px 28px rgba(250,204,21,0.35); transform: translateY(0); }
+          50% { box-shadow: 0 16px 36px rgba(250,204,21,0.55); transform: translateY(-2px); }
+        }
+        .bingo-overlay {
+          position: fixed;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          background: rgba(0,0,0,0.45);
+          color: #facc15;
+          font-size: 32px;
+          font-weight: 900;
+          text-shadow: 0 0 18px rgba(250,204,21,0.7);
+          z-index: 60;
+          backdrop-filter: blur(4px);
+        }
+        .number-cell {
+          position: relative;
+          background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+          box-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
+        }
+        .bingo-daub {
+          box-shadow: 0 0 0 3px rgba(16,185,129,0.7), 0 0 18px rgba(236,72,153,0.6);
+          animation: pop 180ms ease;
+        }
+        .bingo-daub--pulse { animation: pop 180ms ease, neonPop 1.2s ease-in-out infinite; }
+        @keyframes pop { from { transform: scale(0.9); } to { transform: scale(1); } }
+        @keyframes neonPop {
+          0%,100% { box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
+          50% { box-shadow: 0 0 0 6px rgba(236,72,153,0.25); }
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @keyframes bounce-subtle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        .animate-bounce-subtle {
-          animation: bounce-subtle 2s ease-in-out infinite;
-        }
-
-        /* Responsive Scaling for Grid Components */
-        .game-shell td, .game-shell th {
-          padding: 2px !important;
-          font-size: 0.75rem !important;
+        @media (max-width: 768px) {
+          .live-status-bar { flex-direction: column; align-items: flex-start; }
+          .dock-icons { width: 200px; }
+          .bingo-cta { flex: 1; }
+          .grid { grid-template-columns: 1fr !important; }
+          .bingo-card-wrapper.hidden { display: none !important; }
         }
       `}</style>
     </main>
