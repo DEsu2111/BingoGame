@@ -703,3 +703,19 @@ input:focus-visible, button:focus-visible {
 .bingo-marked{background:#22c55e; color:#0f172a;}
 .bingo-current{outline:2px solid #fbbf24;}
 .bingo-disabled{opacity:0.65; cursor:default;}
+.welcome-rail{
+  position:sticky;
+  bottom:0;
+  z-index:20;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:8px 0 env(safe-area-inset-bottom);
+}
+.welcome-rail__item{
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(10px);
+  padding:10px;
+}
