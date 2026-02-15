@@ -66,6 +66,13 @@ export default function GameBoard() {
           <div className="cards-header">
             <span className="cards-header__label">Last Call</span>
             <span className="cards-header__pill">{lastCalled ?? '—'}</span>
+            <button
+              type="button"
+              className="force-win-btn"
+              onClick={() => dispatch({ type: 'SET_WIN', payload: { winStatus: 'win', winAmount: state.betAmount * 2 } })}
+            >
+              Force Win
+            </button>
           </div>
           {selectedCards.map((card, idx) => (
             <div key={idx} className="card-slot">
@@ -243,6 +250,17 @@ export default function GameBoard() {
           color: #0f172a;
           font-weight: 900;
           box-shadow: 0 8px 18px rgba(250,204,21,0.35);
+        }
+        .force-win-btn {
+          margin-left: 6px;
+          padding: 4px 8px;
+          font-size: 10px;
+          font-weight: 800;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #10b981, #34d399);
+          color: #041012;
+          border: 1px solid rgba(16,185,129,0.5);
+          box-shadow: 0 6px 12px rgba(16,185,129,0.3);
         }
         .card-slot {
           min-height: 0;
