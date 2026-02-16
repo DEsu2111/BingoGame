@@ -1,13 +1,26 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
+import { useSound } from '@/hooks/useSound';
 import MiniCard from './MiniCard';
 import WinBlinker from './WinBlinker';
 
 export default function GameBoard() {
   const { state, dispatch } = useGame();
   const cellRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const playCall = useSound('https://cdn.freesound.org/previews/331/331912_3248244-lq.mp3', 0.85); // short blip
+const playWin  = useSound('https://cdn.freesound.org/previews/514/514763_10226545-lq.mp3', 0.9);  // win jingle
+
+
+  useEffect(() => {
+    if (state.currentCall !== null) playCall();
+  }, [state.currentCall, playCall]);
+
+  useEffect(() => {
+    if (state.winStatus === 'win') playWin();
+  }, [state.winStatus, playWin]);
 
   const numbers = useMemo(() => Array.from({ length: 75 }, (_, i) => i + 1), []);
   const calledSet = state.calledNumbers;
@@ -69,7 +82,7 @@ export default function GameBoard() {
             <button
               type="button"
               className="force-win-btn"
-              onClick={() => dispatch({ type: 'SET_WIN', payload: { winStatus: 'win', winAmount: state.betAmount * 2 } })}
+              onClick={() => dispatch({ type: 'FORCE_WIN' })}
             >
               Force Win
             </button>
@@ -196,15 +209,8 @@ export default function GameBoard() {
           border: 1px solid rgba(255,255,255,0.06);
           line-height: 1;
         }
-        .tile-idle {
-          color: #94a3b8;
-          background: rgba(255,255,255,0.04);
-        }
-        .tile-called {
-          color: #0f172a;
-          background: linear-gradient(135deg, #facc15, #f97316);
-          box-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
-        }
+        .tile-idle { color: #94a3b8; background: rgba(255,255,255,0.04); }
+        .tile-called { color: #0f172a; background: linear-gradient(135deg, #facc15, #f97316); box-shadow: 0 0 10px rgba(250, 204, 21, 0.6); }
         .tile-pulse { animation: pulse-tile 0.6s ease; }
         @keyframes pulse-tile {
           0% { transform: scale(0.9); box-shadow: 0 0 6px rgba(14,165,233,0.3); }
@@ -214,7 +220,6 @@ export default function GameBoard() {
         .cards-zone {
           flex: 0 0 45%;
           max-width: 45%;
-          display: flex;
           display: grid;
           grid-template-rows: auto 1fr 1fr;
           gap: 3px;
@@ -235,12 +240,7 @@ export default function GameBoard() {
           margin-bottom: 4px;
           gap: 6px;
         }
-        .cards-header__label {
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #cbd5e1;
-        }
+        .cards-header__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #cbd5e1; }
         .cards-header__pill {
           min-width: 42px;
           text-align: center;
@@ -272,12 +272,7 @@ export default function GameBoard() {
         }
         .card-slot > * { flex: 1; height: 100%; }
         .placeholder-slot { display: grid; place-items: center; }
-        /* Force bingo cards to scale to available height */
-        .card-slot .bingo-card {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
+        .card-slot .bingo-card { height: 100%; display: flex; flex-direction: column; }
         .card-slot .bingo-head { flex-shrink: 0; }
         .card-slot .bingo-grid { flex: 1; }
 
@@ -307,15 +302,8 @@ export default function GameBoard() {
         }
         @media (orientation: landscape) and (max-width: 900px) {
           .game-body { flex-direction: column; }
-          .matrix-zone {
-            flex: 0 0 40%;
-            max-width: 100%;
-            height: 38vh;
-          }
-          .cards-zone {
-            flex: 1;
-            height: 62vh;
-          }
+          .matrix-zone { flex: 0 0 40%; max-width: 100%; height: 38vh; }
+          .cards-zone { flex: 1; height: 62vh; }
           .dual-card-stack { flex-direction: row; }
           .card-slot { flex: 1; }
         }
