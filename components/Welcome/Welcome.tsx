@@ -2,12 +2,23 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
+import CardSelector from './CardSelector';
 
-export default function Welcome() {
+type Props = {
+  nickname?: string;
+  countdown?: number;
+  takenSlots?: number[];
+  onReserveSlots?: (slots: number[]) => void;
+  onReleaseSlots?: (slots: number[]) => void;
+};
+
+export default function Welcome({ nickname, countdown: sharedCountdown, takenSlots = [], onReserveSlots, onReleaseSlots }: Props) {
   const { state, dispatch } = useGame();
   const [betInput, setBetInput] = useState<string>(state.betAmount > 0 ? String(state.betAmount) : '');
   const [walletAmount, setWalletAmount] = useState<string>('50');
   const walletInputRef = useRef<HTMLInputElement | null>(null);
+  const countdown = sharedCountdown ?? 60;
+  const [readyToStart, setReadyToStart] = useState(false);
 
   const parsedBet = useMemo(() => {
     const value = Number(betInput);
@@ -15,11 +26,18 @@ export default function Welcome() {
     return Math.floor(value);
   }, [betInput]);
 
-  const canProceed = parsedBet > 0 && state.balance >= parsedBet;
+  // Allow start regardless of bet/cards for manual start; countdown just arms readiness
+  const canProceed = true;
 
-  const handleStart = () => {
-    dispatch({ type: 'SET_BET', payload: parsedBet });
-    dispatch({ type: 'START_GAME' });
+  /**
+   * Move to the game page and start calls.
+   * If cards aren't selected, the reducer will auto-pick the first two.
+   */
+  const handleStart = (fromCountdown = false) => {
+    const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
+    dispatch({ type: 'SET_BET', payload: betPayload });
+    dispatch({ type: 'BEGIN_DRAW' });
+    if (fromCountdown) setReadyToStart(true);
   };
 
   const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
@@ -38,11 +56,19 @@ export default function Welcome() {
       </div>
 
       <div className="relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
+        {/* Countdown banner */}
+        <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 shadow-lg">
+          <span className="text-[11px] uppercase tracking-[0.2em] font-black text-rose-200">Next Round</span>
+          <span className="text-2xl font-black text-rose-400 tabular-nums">{countdown}s</span>
+        </div>
+
         {/* Header & Financials */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col bg-white/5 border border-white/10 rounded-xl px-3 py-2 backdrop-blur-md">
-            <span className="text-[10px] uppercase tracking-tight text-slate-400 font-bold">Step 1</span>
-            <span className="text-xs font-black text-emerald-400">Bank & Bet</span>
+            <span className="text-[10px] uppercase tracking-tight text-slate-400 font-bold">Welcome</span>
+            <span className="text-sm font-black text-emerald-400 truncate max-w-[150px]">
+              {nickname ? nickname : 'Player'}
+            </span>
           </div>
 
           <div className="balance-card">
@@ -151,6 +177,26 @@ export default function Welcome() {
           )}
         </section>
 
+        {/* Card selection on welcome */}
+        <section className="bg-white/5 border border-white/10 rounded-3xl p-3 space-y-3 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-300">Select Cards</p>
+            <p className="text-[11px] font-black text-emerald-300">
+              {state.selectedCardIndices.length}/2
+            </p>
+          </div>
+          <div className="max-h-36 overflow-y-auto pr-1">
+            <CardSelector
+              cards={state.allCards}
+              selectedIndices={state.selectedCardIndices}
+              takenSlots={takenSlots}
+              onReserve={onReserveSlots}
+              onRelease={onReleaseSlots}
+              onSelect={(indices) => dispatch({ type: 'SELECT_CARDS', payload: indices })}
+            />
+          </div>
+        </section>
+
         {/* CTA */}
         <footer className="pb-2">
           <button
@@ -162,11 +208,7 @@ export default function Welcome() {
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
               }`}
           >
-            {canProceed ? (
-              <>Start Selection <span className="text-xl">→</span></>
-            ) : (
-              'Enter Bet to Play'
-            )}
+            Start Playing <span className="text-xl">→</span>
           </button>
           <p className="text-[9px] text-center text-slate-600 mt-3 font-bold uppercase tracking-widest">
             Fair Play Guaranteed • Secured 256-bit

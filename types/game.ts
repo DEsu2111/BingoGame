@@ -33,6 +33,7 @@ export interface GameState {
   matchedCount: number;
   results: GameResult[];
   insufficientBalanceMessage: string;
+  winnerName?: string | null;
 }
 
 export type GameAction =
@@ -43,6 +44,8 @@ export type GameAction =
   | { type: 'SET_BET'; payload: number }
   | { type: 'SELECT_CARDS'; payload: number[] }
   | { type: 'START_GAME' }
+  | { type: 'BEGIN_WAIT' }
+  | { type: 'START_CALLS' }
   | { type: 'BEGIN_DRAW' }
   | { type: 'DRAW_NUMBER' }
   | { type: 'SHOW_RESULT' }
@@ -51,4 +54,5 @@ export type GameAction =
   | { type: 'MARK_CELL'; payload: { cardIndex: number; row: number; col: number } }
   | { type: 'GAME_LOSS' }
   | { type: 'PLAY_AGAIN' }
-  | { type: 'CLEAR_INSUFFICIENT_BALANCE_MESSAGE' };
+  | { type: 'CLEAR_INSUFFICIENT_BALANCE_MESSAGE' }
+  | { type: 'SET_WINNER_NAME'; payload: string | null };

@@ -1,21 +1,10 @@
-import { BingoCard } from '@/types/game';
+export function checkWin(marked: Set<string>): boolean {
+  const isMarked = (r: number, c: number) => marked.has(`${r}-${c}`) || (r === 2 && c === 2);
+  const grid = Array.from({ length: 5 }, (_, r) => Array.from({ length: 5 }, (_, c) => isMarked(r, c)));
 
-export function checkWin(card: BingoCard): boolean {
-  // Rows
-  for (let row = 0; row < 5; row++) {
-    if (card[row].every(cell => cell.marked)) return true;
-  }
-
-  // Columns
-  for (let col = 0; col < 5; col++) {
-    if (card.every(row => row[col].marked)) return true;
-  }
-
-  // Diagonals
-  if (card[0][0].marked && card[1][1].marked && card[2][2].marked && card[3][3].marked && card[4][4].marked)
-    return true;
-  if (card[0][4].marked && card[1][3].marked && card[2][2].marked && card[3][1].marked && card[4][0].marked)
-    return true;
-
+  if (grid.some(row => row.every(Boolean))) return true;
+  for (let c = 0; c < 5; c++) if (grid.every(row => row[c])) return true;
+  if ([0,1,2,3,4].every(i => grid[i][i])) return true;
+  if ([0,1,2,3,4].every(i => grid[i][4-i])) return true;
   return false;
 }

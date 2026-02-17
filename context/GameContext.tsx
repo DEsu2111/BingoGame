@@ -10,14 +10,15 @@ import { playWinSound } from '@/utils/sound';
 const BALANCE_STORAGE_KEY = 'bingo_balance';
 const RESULTS_STORAGE_KEY = 'bingo_results';
 
-const DEFAULT_BALANCE = 1000;
+const DEFAULT_BALANCE = 10;
+const DEFAULT_BET = 20;
 const DRAW_MS = 5000;
 const RESULT_DELAY_MS = 6000;
 
 const createInitialState = (initialBalance: number, initialResults: GameResult[]): GameState => ({
   mode: 'welcome',
   balance: initialBalance,
-  betAmount: 0,
+  betAmount: DEFAULT_BET,
   allCards: [],
   selectedCardIndices: [],
   playerCards: [],
@@ -30,6 +31,7 @@ const createInitialState = (initialBalance: number, initialResults: GameResult[]
   matchedCount: 0,
   results: initialResults,
   insufficientBalanceMessage: '',
+  winnerName: null,
 });
 
 function toResetPlayerCards(state: GameState) {
@@ -74,6 +76,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         balance: action.payload.balance,
         results: action.payload.results.slice(0, 25),
       };
+    }
+    case 'SET_WINNER_NAME': {
+      return { ...state, winnerName: action.payload ?? null };
     }
     case 'SET_CARDS': {
       return {
@@ -139,20 +144,37 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         insufficientBalanceMessage: '',
       };
     }
+    case 'BEGIN_WAIT':
     case 'BEGIN_DRAW': {
-      if (state.selectedCardIndices.length !== 2 || state.playerCards.length !== 2) return state;
+      let nextSelected = state.selectedCardIndices;
+      let nextPlayerCards = state.playerCards;
+      if (nextSelected.length !== 2 || nextPlayerCards.length !== 2) {
+        nextSelected = state.allCards.length >= 2 ? [0, 1] : [];
+        nextPlayerCards = nextSelected.map((idx) => state.allCards[idx]);
+      }
+      if (nextSelected.length !== 2 || nextPlayerCards.length !== 2) return state;
 
-      return {
+      const chargeBet = state.mode === 'welcome' ? state.betAmount : 0;
+      const baseState = {
         ...state,
+        selectedCardIndices: nextSelected,
+        playerCards: toResetPlayerCards({ ...state, playerCards: nextPlayerCards }),
         mode: 'game',
-        gameActive: true,
         winStatus: 'none',
         calledNumbers: new Set<number>(),
         calledNumbersList: [],
         currentCall: null,
         matchedCount: 0,
-        playerCards: toResetPlayerCards(state),
+        balance: state.balance - chargeBet,
       };
+
+      return action.type === 'BEGIN_DRAW'
+        ? { ...baseState, gameActive: true }
+        : { ...baseState, gameActive: false };
+    }
+    case 'START_CALLS': {
+      if (state.mode !== 'game') return state;
+      return { ...state, gameActive: true };
     }
     case 'DRAW_NUMBER': {
       if (!state.gameActive || state.calledNumbers.size >= 5) return state;
@@ -267,7 +289,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case 'SHOW_RESULT': {
-      if (state.winStatus === 'none') return state;
       return { ...state, mode: 'result', gameActive: false };
     }
     case 'VIEW_GAME': {
@@ -286,6 +307,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         matchedCount: 0,
         selectedCardIndices: [],
         playerCards: [],
+        winnerName: null,
+        betAmount: DEFAULT_BET,
       };
     }
     case 'CLEAR_INSUFFICIENT_BALANCE_MESSAGE': {

@@ -146,24 +146,24 @@ input:focus-visible, button:focus-visible {
 }
 
 /* Bingo card (single-word class names) */
-.bingo-card { width:100%; max-width:18rem; background:#fff; border:2px solid #1f2937; border-radius:8px; padding:8px; }
+.bingo-card { width:100%; max-width:13rem; background:#fff; border:2px solid #1f2937; border-radius:8px; padding:6px; }
 .bingo-head { display:grid; grid-template-columns:repeat(5,1fr); text-align:center; font-weight:800; color:#fff; }
 .bingo-b{background:#00b5a9;} .bingo-i{background:#7ec242;} .bingo-n{background:#7f2c7f;} .bingo-g{background:#d32f7f;} .bingo-o{background:#f44336;}
-.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr); gap:2px;}
-.bingo-cell{border:1px solid #1f2937; height:54px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#111827; font-size:18px; background:#fff; border-radius:3px; padding:0;}
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr); gap:1px;}
+.bingo-cell{border:1px solid #1f2937; height:45px; width:45px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#111827; font-size:14px; background:#fff; border-radius:3px; padding:0;}
 .bingo-free{background:#1ca04c; color:#fff;}
 .bingo-marked{background:#22c55e; color:#0f172a;}
 .bingo-current{outline:2px solid #fbbf24;}
 .bingo-disabled{opacity:0.65; cursor:default;}
-.bingo-free-wrap{position:relative; width:100%; height:100%; display:block; border-radius:3px; overflow:hidden;}
+.bingo-free-wrap{position:relative; width:50%; height:50%; display:block; border-radius:3px; overflow:hidden;}
 .bingo-free-img{object-fit:cover;}
 .bingo-free-emoji{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; text-shadow:0 1px 3px rgba(0,0,0,0.35); pointer-events:none;}
 .free-fallback{
   display:flex;
   align-items:center;
   justify-content:center;
-  width:100%;
-  height:100%;
+  width:55%;
+  height:80%;
   background:linear-gradient(135deg,#facc15,#f97316);
   color:#fff;
   font-weight:800;
@@ -452,18 +452,34 @@ input:focus-visible, button:focus-visible {
   transition:transform 220ms ease;
 }
 .cell{
-  width:100%;
-  aspect-ratio:1 / 1;
+  width:55px;
+  height:55px;
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:10px;
+  border-radius:0;
   font-weight:800;
   font-size:14px;
   color:#e5e7eb;
   transition:transform 140ms ease, box-shadow 160ms ease, background 200ms ease, border 160ms ease;
   animation: fade-stagger 240ms ease forwards;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+  margin:0;
+  padding:0;
+}
+
+@media (max-width: 480px) {
+  .cell{
+    width:48px;
+    height:48px;
+    font-size:13px;
+  }
+  .bingo-card{ max-width: 12.5rem; padding:5px; }
+  .bingo-cell{
+    width:40px;
+    height:40px;
+    font-size:13px;
+  }
 }
 .cell-uncalled{
   background: rgba(30,41,59,0.6);
@@ -515,9 +531,9 @@ input:focus-visible, button:focus-visible {
 /* Player cards elevated shells */
 .card-shell{
   width:100%;
-  max-width:20rem;
-  border-radius:18px;
-  padding:14px;
+  max-width:16rem;
+  border-radius:14px;
+  padding:10px;
   border:1px solid rgba(255,255,255,0.12);
   background:linear-gradient(160deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
   box-shadow:0 15px 40px rgba(0,0,0,0.35);
@@ -539,7 +555,7 @@ input:focus-visible, button:focus-visible {
 .card-shell__body,
 .card-shell__footer{ position:relative; z-index:1; }
 .card-shell__header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.card-shell__body{ border-radius:12px; padding:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);}
+.card-shell__body{ border-radius:10px; padding:4px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);}
 .card-shell__footer{ margin-top:10px; text-align:center; }
 .card-shell--sky{ border-color:rgba(56,189,248,0.35); }
 .card-shell--sun{ border-color:rgba(251,191,36,0.35); }
@@ -630,8 +646,15 @@ input:focus-visible, button:focus-visible {
   padding:8px;
 }
 .select-card--dense{
-  min-height:64px;
-  gap:4px;
+    min-height:64px;
+    gap:4px;
+}
+
+/* Taken (reserved) cards shown in red */
+.select-card--taken{
+    border-color:#f87171;
+    background:rgba(248,113,113,0.12);
+    color:#fecdd3;
 }
 
 /* Heat bar */
@@ -696,9 +719,9 @@ input:focus-visible, button:focus-visible {
 .bingo-head { display:grid; grid-template-columns:repeat(5,1fr); text-align:center; font-weight:800; color:#fff; }
 .bingo-b{background:#00b5a9;} .bingo-i{background:#7ec242;} .bingo-n{background:#7f2c7f;}
 .bingo-g{background:#d32f7f;} .bingo-o{background:#f44336;}
-.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr); gap:2px;}
-.bingo-cell{border:1px solid #1f2937; height:54px; display:flex; align-items:center; justify-content:center;
-            font-weight:800; color:#111827; font-size:18px; background:#fff; border-radius:3px; }
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr); gap:0;}
+.bingo-cell{border:1px solid #1f2937; height:45px; width:45px; display:flex; align-items:center; justify-content:center;
+            font-weight:800; color:#111827; font-size:16px; background:#fff; border-radius:0; margin:0; padding:0; }
 .bingo-free{background:#1ca04c; color:#fff;}
 .bingo-marked{background:#22c55e; color:#0f172a;}
 .bingo-current{outline:2px solid #fbbf24;}
@@ -718,4 +741,25 @@ input:focus-visible, button:focus-visible {
   background:rgba(255,255,255,0.08);
   backdrop-filter:blur(10px);
   padding:10px;
+}
+
+/* Mobile fit: keep both cards visible without scrolling */
+@media (max-width: 480px) {
+  .bingo-card{
+    max-width: 11.25rem;
+    padding:4px;
+  }
+  .bingo-head{
+    font-size:11px;
+  }
+  .bingo-cell{
+    width:36px;
+    height:36px;
+    font-size:12px;
+  }
+  .cell{
+    width:44px;
+    height:44px;
+    font-size:12px;
+  }
 }
