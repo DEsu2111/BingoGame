@@ -155,7 +155,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       if (nextSelected.length !== 2 || nextPlayerCards.length !== 2) return state;
 
       const chargeBet = state.mode === 'welcome' ? state.betAmount : 0;
-      const baseState = {
+      const baseState: GameState = {
         ...state,
         selectedCardIndices: nextSelected,
         playerCards: toResetPlayerCards({ ...state, playerCards: nextPlayerCards }),
@@ -379,6 +379,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const results = readInitialResults();
     dispatch({ type: 'HYDRATE', payload: { balance, results } });
     dispatch({ type: 'SET_CARDS', payload: generateCards(30) });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHydrated(true);
   }, []);
 
