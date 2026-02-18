@@ -1,24 +1,28 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import type { FC } from 'react';
 import { useGame } from '@/context/GameContext';
 import CardSelector from './CardSelector';
 
 type Props = {
   nickname?: string;
+  error?: string | null;
+  onClearError?: () => void;
+  phase?: 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
   countdown?: number;
   takenSlots?: number[];
   onReserveSlots?: (slots: number[]) => void;
-  onReleaseSlots?: (slots: number[]) => void;
 };
 
-export default function Welcome({ nickname, countdown: sharedCountdown, takenSlots = [], onReserveSlots, onReleaseSlots }: Props) {
+const Welcome: FC<Props> = ({ nickname, error, onClearError, phase = 'COUNTDOWN', countdown: sharedCountdown, takenSlots = [], onReserveSlots }) => {
   const { state, dispatch } = useGame();
   const [betInput, setBetInput] = useState<string>(state.betAmount > 0 ? String(state.betAmount) : '');
   const [walletAmount, setWalletAmount] = useState<string>('50');
   const walletInputRef = useRef<HTMLInputElement | null>(null);
   const countdown = sharedCountdown ?? 60;
   const [readyToStart, setReadyToStart] = useState(false);
+  const [pendingSelectedIndices, setPendingSelectedIndices] = useState<number[]>(state.selectedCardIndices);
 
   const parsedBet = useMemo(() => {
     const value = Number(betInput);
@@ -27,16 +31,22 @@ export default function Welcome({ nickname, countdown: sharedCountdown, takenSlo
   }, [betInput]);
 
   // Allow start regardless of bet/cards for manual start; countdown just arms readiness
-  const canProceed = true;
+  const canProceed = pendingSelectedIndices.length === 2;
 
   /**
    * Move to the game page and start calls.
    * If cards aren't selected, the reducer will auto-pick the first two.
    */
   const handleStart = (fromCountdown = false) => {
+    if (!canProceed) return;
     const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
+    if (pendingSelectedIndices.length) {
+      dispatch({ type: 'SELECT_CARDS', payload: pendingSelectedIndices });
+      onReserveSlots?.(pendingSelectedIndices.map((index) => index + 1));
+    }
+    dispatch({ type: 'SET_JOINED', payload: true });
     dispatch({ type: 'SET_BET', payload: betPayload });
-    dispatch({ type: 'BEGIN_DRAW' });
+    dispatch({ type: phase === 'ACTIVE' ? 'BEGIN_DRAW' : 'BEGIN_WAIT' });
     if (fromCountdown) setReadyToStart(true);
   };
 
@@ -46,6 +56,15 @@ export default function Welcome({ nickname, countdown: sharedCountdown, takenSlo
     dispatch({ type, payload: value });
     setWalletAmount('50');
   };
+
+  const handleClearSelection = () => {
+    setPendingSelectedIndices([]);
+    dispatch({ type: 'SELECT_CARDS', payload: [] });
+    dispatch({ type: 'SET_JOINED', payload: false });
+    onClearError?.();
+  };
+
+  const isReservedError = Boolean(error && error.toLowerCase().includes('reserved'));
 
   return (
     <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
@@ -182,17 +201,29 @@ export default function Welcome({ nickname, countdown: sharedCountdown, takenSlo
           <div className="flex items-center justify-between">
             <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-300">Select Cards</p>
             <p className="text-[11px] font-black text-emerald-300">
-              {state.selectedCardIndices.length}/2
+              {pendingSelectedIndices.length}/2
             </p>
           </div>
+          {error && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-200 space-y-2">
+              <p>{error}</p>
+              {isReservedError ? (
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="w-full rounded-lg bg-rose-500/20 border border-rose-500/30 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-rose-100"
+                >
+                  Pick New Cards
+                </button>
+              ) : null}
+            </div>
+          )}
           <div className="max-h-36 overflow-y-auto pr-1">
             <CardSelector
               cards={state.allCards}
-              selectedIndices={state.selectedCardIndices}
+              selectedIndices={pendingSelectedIndices}
               takenSlots={takenSlots}
-              onReserve={onReserveSlots}
-              onRelease={onReleaseSlots}
-              onSelect={(indices) => dispatch({ type: 'SELECT_CARDS', payload: indices })}
+              onSelect={(indices) => setPendingSelectedIndices(indices)}
             />
           </div>
         </section>
@@ -208,7 +239,7 @@ export default function Welcome({ nickname, countdown: sharedCountdown, takenSlo
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
               }`}
           >
-            Start Playing <span className="text-xl">→</span>
+            Join Game <span className="text-xl">→</span>
           </button>
           <p className="text-[9px] text-center text-slate-600 mt-3 font-bold uppercase tracking-widest">
             Fair Play Guaranteed • Secured 256-bit
@@ -336,4 +367,6 @@ export default function Welcome({ nickname, countdown: sharedCountdown, takenSlo
       `}</style>
     </main>
   );
-}
+};
+
+export default Welcome;

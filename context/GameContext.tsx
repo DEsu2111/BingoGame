@@ -17,6 +17,7 @@ const RESULT_DELAY_MS = 6000;
 
 const createInitialState = (initialBalance: number, initialResults: GameResult[]): GameState => ({
   mode: 'welcome',
+  hasJoinedRound: false,
   balance: initialBalance,
   betAmount: DEFAULT_BET,
   allCards: [],
@@ -85,6 +86,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         allCards: action.payload,
       };
+    }
+    case 'SET_JOINED': {
+      return { ...state, hasJoinedRound: action.payload };
     }
     case 'DEPOSIT': {
       if (action.payload <= 0) return state;
@@ -309,6 +313,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         playerCards: [],
         winnerName: null,
         betAmount: DEFAULT_BET,
+        hasJoinedRound: false,
       };
     }
     case 'CLEAR_INSUFFICIENT_BALANCE_MESSAGE': {

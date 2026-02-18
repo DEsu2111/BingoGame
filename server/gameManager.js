@@ -13,7 +13,7 @@ export class GameManager {
     this.countdownSeconds = countdownSeconds;
     this.callIntervalMs = callIntervalMs;
 
-    this.players = new Map(); // socketId -> { nickname, card, marked:Set<string>, reservedSlots:number[] }
+    this.players = new Map(); // socketId -> { nickname, phone, card, marked:Set<string>, reservedSlots:number[] }
     this.usedCards = new Set(); // unique card signatures this round
     this.reservedSlots = new Set(); // shared slot ids (1..30) reserved this round
     this.calledNumbers = new Set();
@@ -80,7 +80,7 @@ export class GameManager {
   }
 
   registerSocket(socket) {
-    socket.on('join', ({ nickname }) => this.handleJoin(socket, nickname));
+    socket.on('join', (payload) => this.handleJoin(socket, payload));
     socket.on('reserveCards', ({ slots }) => this.handleReserve(socket, slots));
     socket.on('releaseCards', ({ slots }) => this.handleRelease(socket, slots));
     socket.on('markCell', (payload) => this.handleMark(socket, payload));
@@ -88,15 +88,33 @@ export class GameManager {
     socket.on('disconnect', () => this.handleDisconnect(socket));
   }
 
-  handleJoin(socket, nickname) {
+  handleJoin(socket, { nickname, phone } = {}) {
+    if (this.players.size >= 15) {
+      socket.emit('error', { message: 'Game is full (max 15 players).' });
+      return;
+    }
     if (!nickname || typeof nickname !== 'string') {
       socket.emit('error', { message: 'Nickname required' });
       return;
     }
+    if (!phone || typeof phone !== 'string') {
+      socket.emit('error', { message: 'Phone number required' });
+      return;
+    }
+    if (!/^09\d{8}$/.test(phone)) {
+      socket.emit('error', { message: 'Phone must start with 09 and be 10 digits.' });
+      return;
+    }
+    for (const player of this.players.values()) {
+      if (player.phone === phone) {
+        socket.emit('error', { message: 'This phone number is already in the game.' });
+        return;
+      }
+    }
 
     const card = this.generateUniqueCard();
     const marked = new Set(['2-2']); // free
-    this.players.set(socket.id, { nickname, card, marked, reservedSlots: [] });
+    this.players.set(socket.id, { nickname, phone, card, marked, reservedSlots: [] });
 
     socket.emit('joined', {
       playerId: socket.id,
@@ -120,21 +138,41 @@ export class GameManager {
   handleReserve(socket, slots) {
     const player = this.players.get(socket.id);
     if (!player || !Array.isArray(slots)) return;
-    if (player.reservedSlots.length >= 2) return;
-    const normalized = slots
-      .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n) && n >= 1 && n <= 30);
-    const newSlots = [];
-    for (const n of normalized) {
-      if (this.reservedSlots.has(n)) continue;
-      if (player.reservedSlots.length + newSlots.length >= 2) break;
+    if (this.reservedSlots.size >= 30) {
+      socket.emit('error', { message: 'All cards are reserved for this round.' });
+      return;
+    }
+    if (player.reservedSlots.length >= 2) {
+      socket.emit('error', { message: 'You already reserved cards for this round.' });
+      return;
+    }
+
+    const normalized = Array.from(
+      new Set(
+        slots
+          .map((n) => Number(n))
+          .filter((n) => Number.isInteger(n) && n >= 1 && n <= 30),
+      ),
+    );
+    const requested = normalized.slice(0, 2);
+    if (requested.length < 2) {
+      socket.emit('error', { message: 'Select 2 cards to join the game.' });
+      return;
+    }
+
+    const blocked = requested.filter((n) => this.reservedSlots.has(n));
+    if (blocked.length) {
+      socket.emit('error', {
+        message: `Card${blocked.length > 1 ? 's' : ''} ${blocked.join(', ')} ${blocked.length > 1 ? 'are' : 'is'} already reserved.`
+      });
+      return;
+    }
+
+    for (const n of requested) {
       this.reservedSlots.add(n);
-      newSlots.push(n);
       player.reservedSlots.push(n);
     }
-    if (newSlots.length) {
-      this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
-    }
+    this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
   }
 
   handleRelease(socket, slots) {

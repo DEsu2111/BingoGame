@@ -8,9 +8,10 @@ type Phase = 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
 
 export function useMultiplayerBingo() {
   const socketRef = useRef<Socket | null>(null);
-  const pendingNickRef = useRef<string | null>(null);
+  const pendingJoinRef = useRef<{ nickname: string; phone: string } | null>(null);
   const [connected, setConnected] = useState(false);
   const [nickname, setNickname] = useState('');
+  const [phone, setPhone] = useState('');
   const [phase, setPhase] = useState<Phase>('COUNTDOWN');
   const [countdown, setCountdown] = useState<number>(60); // display-friendly countdown
   const [card, setCard] = useState<BingoCard | null>(null);
@@ -34,9 +35,9 @@ export function useMultiplayerBingo() {
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
     s.on('connect', () => {
-      const nick = pendingNickRef.current;
-      if (nick) {
-        s.emit('join', { nickname: nick });
+      const pending = pendingJoinRef.current;
+      if (pending) {
+        s.emit('join', pending);
       }
     });
 
@@ -93,12 +94,13 @@ export function useMultiplayerBingo() {
   }, []);
 
 
-  const join = (nick: string) => {
+  const join = (nick: string, phoneNumber: string) => {
     if (!socketRef.current) return;
     setNickname(nick);
-    pendingNickRef.current = nick;
+    setPhone(phoneNumber);
+    pendingJoinRef.current = { nickname: nick, phone: phoneNumber };
     if (socketRef.current.connected) {
-      socketRef.current.emit('join', { nickname: nick });
+      socketRef.current.emit('join', { nickname: nick, phone: phoneNumber });
     }
   };
 
@@ -123,9 +125,12 @@ export function useMultiplayerBingo() {
     socketRef.current?.emit('releaseCards', { slots });
   };
 
+  const clearError = () => setError(null);
+
   return {
     connected,
     nickname,
+    phone,
     phase,
     countdown,
     card,
@@ -142,5 +147,6 @@ export function useMultiplayerBingo() {
     claimBingo,
     reserveSlots,
     releaseSlots,
+    clearError,
   };
 }

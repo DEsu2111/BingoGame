@@ -19,6 +19,7 @@ export interface GameResult {
 
 export interface GameState {
   mode: 'welcome' | 'select' | 'game' | 'result';
+  hasJoinedRound: boolean;
   balance: number;
   betAmount: number;
   allCards: BingoCard[];
@@ -39,6 +40,7 @@ export interface GameState {
 export type GameAction =
   | { type: 'HYDRATE'; payload: { balance: number; results: GameResult[] } }
   | { type: 'SET_CARDS'; payload: BingoCard[] }
+  | { type: 'SET_JOINED'; payload: boolean }
   | { type: 'DEPOSIT'; payload: number }
   | { type: 'WITHDRAW'; payload: number }
   | { type: 'SET_BET'; payload: number }
