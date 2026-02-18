@@ -16,7 +16,7 @@ export function GameBoard({ card, marked, called, active, onMark }: Props) {
       {card.map((row: BingoCard[number], r: number) =>
         row.map((cell: BingoCard[number][number], c: number) => {
           const key = `${r}-${c}`;
-          const isCalled = cell === 'FREE' || called.includes(cell as number);
+          const isCalled = cell.value === 0 || called.includes(cell.value);
           const isMarked = marked.has(key) || (r === 2 && c === 2);
           return (
             <button
@@ -32,7 +32,7 @@ export function GameBoard({ card, marked, called, active, onMark }: Props) {
                 !active && 'opacity-60 cursor-not-allowed'
               )}
             >
-              {cell === 'FREE' ? 'FREE' : cell}
+              {cell.value === 0 ? 'FREE' : cell.value}
             </button>
           );
         })
