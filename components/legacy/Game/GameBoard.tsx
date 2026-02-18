@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { BingoCard } from '@/shared/cardGenerator';
+import type { BingoCard } from '@/types/game';
 
 type Props = {
   card: BingoCard;
@@ -40,3 +40,4 @@ export function GameBoard({ card, marked, called, active, onMark }: Props) {
     </div>
   );
 }
+

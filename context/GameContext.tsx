@@ -3,9 +3,9 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { GameAction, GameResult, GameState } from '@/types/game';
-import { generateCards } from '@/utils/cardGenerator';
-import { checkWin } from '@/utils/winChecker';
-import { playWinSound } from '@/utils/sound';
+import { generateCards } from '@/lib/cardGenerator';
+import { checkWin } from '@/lib/winChecker';
+import { playWinSound } from '@/lib/sound';
 
 const BALANCE_STORAGE_KEY = 'bingo_balance';
 const RESULTS_STORAGE_KEY = 'bingo_results';
@@ -427,3 +427,4 @@ export function useGame() {
   }
   return context;
 }
+

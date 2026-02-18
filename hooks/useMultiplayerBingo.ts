@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { BingoCard } from '@/shared/cardGenerator';
-import { checkWin } from '@/shared/winChecker';
+import type { BingoCard } from '@/types/game';
+import { checkWin } from '@/lib/winCheckerSet';
 
 type Phase = 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
 
@@ -150,3 +150,4 @@ export function useMultiplayerBingo() {
     clearError,
   };
 }
+
