@@ -116,8 +116,12 @@ export function useMultiplayerBingo() {
   }, []);
 
 
-  const join = (nick: string, phoneNumber: string) => {
+  const join = (nick: string, phoneNumber?: string) => {
     if (!socketRef.current) return;
+    if (!phoneNumber) {
+      setError('Phone number required.');
+      return;
+    }
     setNickname(nick);
     setPhone(phoneNumber);
     pendingJoinRef.current = { nickname: nick, phone: phoneNumber };
