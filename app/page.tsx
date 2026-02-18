@@ -23,6 +23,9 @@ export default function Page() {
     lastWinner,
     error,
     clearError,
+    transport,
+    lastEventAt,
+    eventCount,
   } = useMultiplayerBingo();
 
   const { state, dispatch } = useGame();
@@ -225,6 +228,7 @@ export default function Page() {
       countdown={countdown}
       takenSlots={takenSlots}
       onReserveSlots={reserveSlots}
+      debugInfo={{ transport, lastEventAt, eventCount }}
     />
   );
 }

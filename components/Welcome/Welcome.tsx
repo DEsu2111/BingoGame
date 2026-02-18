@@ -12,6 +12,7 @@ export type WelcomeProps = {
   countdown?: number;
   takenSlots?: number[];
   onReserveSlots?: (slots: number[]) => void;
+  debugInfo?: { transport: string; lastEventAt: number | null; eventCount: number };
 };
 
 export default function Welcome(props: WelcomeProps) {
@@ -23,6 +24,7 @@ export default function Welcome(props: WelcomeProps) {
     countdown: sharedCountdown,
     takenSlots = [],
     onReserveSlots,
+    debugInfo,
   } = props;
   const { state, dispatch } = useGame();
   const [betInput, setBetInput] = useState<string>(state.betAmount > 0 ? String(state.betAmount) : '');
@@ -73,6 +75,8 @@ export default function Welcome(props: WelcomeProps) {
   };
 
   const isReservedError = Boolean(error && error.toLowerCase().includes('reserved'));
+  const secondsSinceEvent =
+    debugInfo?.lastEventAt ? Math.floor((Date.now() - debugInfo.lastEventAt) / 1000) : null;
 
   return (
     <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
@@ -88,6 +92,13 @@ export default function Welcome(props: WelcomeProps) {
           <span className="text-[11px] uppercase tracking-[0.2em] font-black text-rose-200">Next Round</span>
           <span className="text-2xl font-black text-rose-400 tabular-nums">{countdown}s</span>
         </div>
+        {debugInfo ? (
+          <div className="rounded-xl border border-slate-700/40 bg-slate-900/50 px-3 py-2 text-[11px] text-slate-300">
+            <span className="font-semibold">Debug:</span>{' '}
+            transport={debugInfo.transport} • events={debugInfo.eventCount}
+            {secondsSinceEvent !== null ? ` • last=${secondsSinceEvent}s` : ''}
+          </div>
+        ) : null}
 
         {/* Header & Financials */}
         <div className="flex items-start justify-between gap-3">

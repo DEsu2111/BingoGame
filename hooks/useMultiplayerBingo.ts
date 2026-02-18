@@ -22,6 +22,9 @@ export function useMultiplayerBingo() {
   const [error, setError] = useState<string | null>(null);
   const [takenSlots, setTakenSlots] = useState<number[]>([]);
   const [lastWinner, setLastWinner] = useState<string | null>(null);
+  const [transport, setTransport] = useState<string>('unknown');
+  const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+  const [eventCount, setEventCount] = useState<number>(0);
 
   // derived
   const canClaim = useMemo(() => card && checkWin(marked), [card, marked]);
@@ -33,7 +36,10 @@ export function useMultiplayerBingo() {
     });
     socketRef.current = s;
 
-    s.on('connect', () => setConnected(true));
+    s.on('connect', () => {
+      setConnected(true);
+      setTransport(s.io.engine.transport.name);
+    });
     s.on('disconnect', () => setConnected(false));
     s.on('connect', () => {
       const pending = pendingJoinRef.current;
@@ -42,7 +48,13 @@ export function useMultiplayerBingo() {
       }
     });
 
+    const touchEvent = () => {
+      setLastEventAt(Date.now());
+      setEventCount((c) => c + 1);
+    };
+
     s.on('joined', ({ card, currentState }) => {
+      touchEvent();
       setCard(card);
       setPhase(currentState.phase);
       setCountdown(currentState.countdown ?? 60);
@@ -54,6 +66,7 @@ export function useMultiplayerBingo() {
     });
 
     s.on('countdown', ({ timeLeft }) => {
+      touchEvent();
       setPhase('COUNTDOWN');
       setCountdown(timeLeft);
       if (timeLeft >= 59) {
@@ -63,20 +76,24 @@ export function useMultiplayerBingo() {
     });
 
     s.on('gameStart', () => {
+      touchEvent();
       setPhase('ACTIVE');
       setCountdown(0);
     });
 
     s.on('numberCalled', ({ number, calledNumbers }) => {
+      touchEvent();
       setLastNumber(number);
       setCalled(calledNumbers);
     });
 
     s.on('markConfirmed', ({ row, col }) => {
+      touchEvent();
       setMarked((prev) => new Set(prev).add(`${row}-${col}`));
     });
 
     s.on('gameEnd', ({ winnerNickname, winningCard }) => {
+      touchEvent();
       setPhase('ENDED');
       setLastWinner(winnerNickname ?? null);
       setWinners((w) => [{ nickname: winnerNickname, at: Date.now() }, ...w].slice(0, 10));
@@ -84,10 +101,14 @@ export function useMultiplayerBingo() {
     });
 
     s.on('cardsTaken', ({ slots }) => {
+      touchEvent();
       setTakenSlots(Array.isArray(slots) ? slots : []);
     });
 
-    s.on('error', ({ message }) => setError(message));
+    s.on('error', ({ message }) => {
+      touchEvent();
+      setError(message);
+    });
 
     return () => {
       s.disconnect();
@@ -151,6 +172,9 @@ export function useMultiplayerBingo() {
     reserveSlots,
     releaseSlots,
     clearError,
+    transport,
+    lastEventAt,
+    eventCount,
   };
 }
 
