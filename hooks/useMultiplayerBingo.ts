@@ -28,7 +28,8 @@ export function useMultiplayerBingo() {
 
   useEffect(() => {
     const s = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3001', {
-      transports: ['websocket', 'polling'],
+      transports: ['polling'],
+      upgrade: false,
     });
     socketRef.current = s;
 
