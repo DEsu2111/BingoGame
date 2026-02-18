@@ -45,7 +45,7 @@ export default function Welcome(props: WelcomeProps) {
    * Move to the game page and start calls.
    * If cards aren't selected, the reducer will auto-pick the first two.
    */
-  const handleStart = (fromCountdown = false) => {
+  const handleStart = () => {
     if (!canProceed) return;
     const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
     if (pendingSelectedIndices.length) {
@@ -55,7 +55,7 @@ export default function Welcome(props: WelcomeProps) {
     dispatch({ type: 'SET_JOINED', payload: true });
     dispatch({ type: 'SET_BET', payload: betPayload });
     dispatch({ type: phase === 'ACTIVE' ? 'BEGIN_DRAW' : 'BEGIN_WAIT' });
-    if (fromCountdown) setReadyToStart(true);
+    setReadyToStart(true);
   };
 
   const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
