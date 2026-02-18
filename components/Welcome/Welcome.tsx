@@ -14,7 +14,7 @@ export type WelcomeProps = {
   onReserveSlots?: (slots: number[]) => void;
 };
 
-export default function Welcome(props: WelcomeProps): JSX.Element {
+export default function Welcome(props: WelcomeProps) {
   const {
     nickname,
     error,
