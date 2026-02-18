@@ -106,8 +106,10 @@ export function useMultiplayerBingo() {
 
   const markCell = (row: number, col: number) => {
     if (!socketRef.current || phase !== 'ACTIVE' || !card) return;
-    const value = card[row]?.[col];
-    if (value !== 'FREE' && !called.includes(value)) return;
+    const cell = card[row]?.[col];
+    if (!cell) return;
+    const value = cell.value;
+    if (value !== 0 && !called.includes(value)) return;
     socketRef.current.emit('markCell', { row, col });
     // optimistic update
     setMarked((prev) => new Set(prev).add(`${row}-${col}`));

@@ -1,11 +1,10 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import type { FC } from 'react';
 import { useGame } from '@/context/GameContext';
 import CardSelector from './CardSelector';
 
-type Props = {
+export type WelcomeProps = {
   nickname?: string;
   error?: string | null;
   onClearError?: () => void;
@@ -15,7 +14,16 @@ type Props = {
   onReserveSlots?: (slots: number[]) => void;
 };
 
-const Welcome: FC<Props> = ({ nickname, error, onClearError, phase = 'COUNTDOWN', countdown: sharedCountdown, takenSlots = [], onReserveSlots }) => {
+export default function Welcome(props: WelcomeProps): JSX.Element {
+  const {
+    nickname,
+    error,
+    onClearError,
+    phase = 'COUNTDOWN',
+    countdown: sharedCountdown,
+    takenSlots = [],
+    onReserveSlots,
+  } = props;
   const { state, dispatch } = useGame();
   const [betInput, setBetInput] = useState<string>(state.betAmount > 0 ? String(state.betAmount) : '');
   const [walletAmount, setWalletAmount] = useState<string>('50');
@@ -367,6 +375,4 @@ const Welcome: FC<Props> = ({ nickname, error, onClearError, phase = 'COUNTDOWN'
       `}</style>
     </main>
   );
-};
-
-export default Welcome;
+}

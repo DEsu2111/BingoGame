@@ -1,1 +1,1 @@
-export { default as CalledNumbers } from './CalledNumbersTable';
+export { default as CalledNumbers } from '../../Game/CalledNumbersTable';

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMultiplayerBingo } from '@/hooks/useMultiplayerBingo';
 import { useGame } from '@/context/GameContext';
-import Welcome from '@/components/Welcome/Welcome';
+import Welcome, { type WelcomeProps } from '@/components/Welcome/Welcome';
 import SelectCards from '@/components/Welcome/SelectCards';
 import PlayerCards from '@/components/Game/PlayerCards';
 import CalledNumbersTable from '@/components/Game/CalledNumbersTable';
@@ -214,8 +214,10 @@ export default function Page() {
     return <ResultPage />;
   }
 
+  const WelcomeView = Welcome as React.ComponentType<WelcomeProps>;
+
   return (
-    <Welcome
+    <WelcomeView
       nickname={nickname}
       error={error}
       onClearError={clearError}
