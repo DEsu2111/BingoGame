@@ -773,9 +773,9 @@ input:focus-visible, button:focus-visible {
   font-size:12px;
 }
 .player-cards .bingo-cell{
-  width:52px;
-  height:52px;
-  font-size:16px;
+  width:56px;
+  height:56px;
+  font-size:18px;
 }
 @media (max-width: 480px) {
   .player-cards .bingo-card{
@@ -786,8 +786,8 @@ input:focus-visible, button:focus-visible {
     font-size:11px;
   }
   .player-cards .bingo-cell{
-    width:42px;
-    height:42px;
-    font-size:14px;
+    width:46px;
+    height:46px;
+    font-size:16px;
   }
 }
