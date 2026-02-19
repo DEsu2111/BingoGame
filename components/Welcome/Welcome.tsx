@@ -277,77 +277,80 @@ export default function Welcome(props: WelcomeProps) {
       <style jsx global>{`
         @media (max-width: 380px), (max-height: 640px) {
           .welcome-scale {
-            transform: scale(0.92);
+            transform: scale(0.88);
             transform-origin: top center;
           }
           .welcome-shell {
-            gap: 12px;
-            padding-top: 14px;
-            padding-bottom: 16px;
+            gap: 10px;
+            padding-top: 12px;
+            padding-bottom: 14px;
           }
           .welcome-countdown {
-            padding: 6px 12px;
+            padding: 5px 10px;
           }
           .welcome-countdown span:first-child {
             font-size: 9px;
           }
           .welcome-countdown span:last-child {
-            font-size: 18px;
+            font-size: 16px;
           }
           .welcome-header {
             gap: 8px;
           }
           .welcome-badge {
-            padding: 6px 8px;
+            padding: 5px 7px;
           }
           .welcome-balance {
-            min-width: 140px;
-            padding: 8px 10px;
+            min-width: 130px;
+            padding: 6px 8px;
           }
           .welcome-wallet {
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px;
+            gap: 5px;
           }
           .welcome-wallet .wallet-input {
-            height: 36px;
-            font-size: 12px;
-          }
-          .welcome-wallet .action-btn {
-            height: 36px;
-            font-size: 10px;
-          }
-          .hero-welcome-compact {
-            padding: 4px 0;
-            gap: 4px;
-          }
-          .welcome-hero .hero-title {
-            font-size: 20px;
-          }
-          .welcome-hero .hero-sub {
-            font-size: 10px;
-          }
-          .hero-welcome-compact .hero-title {
-            font-size: 22px;
-          }
-          .hero-welcome-compact .hero-sub {
+            height: 34px;
             font-size: 11px;
           }
+          .welcome-wallet .action-btn {
+            height: 34px;
+            font-size: 9px;
+          }
+          .hero-welcome-compact {
+            padding: 2px 0;
+            gap: 3px;
+          }
+          .welcome-hero .hero-title {
+            font-size: 18px;
+          }
+          .welcome-hero .hero-sub {
+            font-size: 9px;
+          }
+          .hero-welcome-compact .hero-title {
+            font-size: 18px;
+          }
+          .hero-welcome-compact .hero-sub {
+            font-size: 9px;
+          }
           .bet-input-compact {
-            padding: 10px;
-            gap: 8px;
+            padding: 8px;
+            gap: 6px;
           }
           .bet-input-compact .bet-input {
-            height: 38px;
-            font-size: 14px;
+            height: 34px;
+            font-size: 13px;
           }
           .bet-input-compact .quick-chip {
-            min-width: 56px;
-            height: 28px;
-            font-size: 10px;
+            min-width: 52px;
+            height: 26px;
+            font-size: 9px;
           }
           .bet-input-compact label,
           .bet-input-compact span {
             font-size: 9px;
+          }
+          .bet-input-compact .quick-chip.flex-1 {
+            min-width: 64px;
           }
         }
         .balance-card {
