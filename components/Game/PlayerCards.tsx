@@ -19,9 +19,9 @@ export default function PlayerCards({ cards }: PlayerCardsProps) {
     .sort((a, b) => a.idx - b.idx);
 
   return (
-    <section className="flex h-full flex-col items-center justify-between gap-0 overflow-hidden">
+    <section className="player-cards flex h-full flex-col items-center justify-between overflow-hidden" style={{ gap: '2%' }}>
       {ordered.map(({ card, idx }) => (
-        <div key={idx} className="card-shell card-shell--bare h-[40%] w-full flex items-center justify-center">
+        <div key={idx} className="card-shell card-shell--bare h-[48%] w-full flex items-center justify-center">
           <MiniCard
             card={card}
             currentCall={state.currentCall}
