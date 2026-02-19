@@ -18,8 +18,8 @@ body {
 }
 
 @media (max-width: 640px) {
-  body { font-size: 15px; }
-  h1, h2, h3 { line-height: 1.1; }
+  body { font-size: 11px; }
+  h1, h2, h3 { line-height: 1; }
 }
 .no-scroll { overflow: hidden; }
 .game-shell {
@@ -532,8 +532,8 @@ input:focus-visible, button:focus-visible {
 .card-shell{
   width:100%;
   max-width:16rem;
-  border-radius:14px;
-  padding:10px;
+  border-radius:10px;
+  padding:8px;
   border:1px solid rgba(255,255,255,0.12);
   background:linear-gradient(160deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
   box-shadow:0 15px 40px rgba(0,0,0,0.35);
@@ -560,9 +560,9 @@ input:focus-visible, button:focus-visible {
 .card-shell--sky{ border-color:rgba(56,189,248,0.35); }
 .card-shell--sun{ border-color:rgba(251,191,36,0.35); }
 .chip{
-  padding:6px 12px;
+  padding:6px 6px;
   border-radius:999px;
-  font-size:11px;
+  font-size:10px;
   font-weight:800;
   letter-spacing:0.04em;
   color:#0f172a;
@@ -581,8 +581,8 @@ input:focus-visible, button:focus-visible {
   place-items:center;
 }
 .hex-core{
-  width:96px;
-  height:96px;
+  width:76px;
+  height:76px;
   background:linear-gradient(145deg,#fbbf24,#f59e0b,#ec4899);
   clip-path:polygon(25% 6%, 75% 6%, 96% 50%, 75% 94%, 25% 94%, 4% 50%);
   display:flex;
@@ -746,21 +746,21 @@ input:focus-visible, button:focus-visible {
 /* Mobile fit: keep both cards visible without scrolling */
 @media (max-width: 480px) {
   .bingo-card{
-    max-width: 11.25rem;
-    padding:4px;
+    max-width: 11rem;
+    padding:2px;
   }
   .bingo-head{
-    font-size:11px;
+    font-size:10px;
   }
   .bingo-cell{
-    width:36px;
-    height:36px;
-    font-size:12px;
+    width:30px;
+    height:30px;
+    font-size:10px;
   }
   .cell{
-    width:44px;
-    height:44px;
-    font-size:12px;
+    width:46px;
+    height:46px;
+    font-size:14px;
   }
 }
 
@@ -769,15 +769,15 @@ input:focus-visible, button:focus-visible {
   gap: 2%;
 }
 .player-cards .bingo-card{
-  max-width: 19rem;
-  padding:8px;
+  max-width: 14rem;
+  padding:4px;
 }
 .player-cards .bingo-head{
   font-size:12px;
 }
 .player-cards .bingo-cell{
-  width:56px;
-  height:56px;
+  width:30px;
+  height:30px;
   font-size:18px;
 }
 @media (max-width: 480px) {
@@ -789,14 +789,14 @@ input:focus-visible, button:focus-visible {
     font-size:11px;
   }
   .player-cards .bingo-cell{
-    width:46px;
-    height:46px;
-    font-size:16px;
+    width:30px;
+    height:30px;
+    font-size:12px;
   }
 }
 @media (max-width: 380px), (max-height: 640px) {
   .player-cards{
-    gap: 1.5%;
+    gap: 1%;
   }
   .player-cards .bingo-card{
     max-width: 12.25rem;
