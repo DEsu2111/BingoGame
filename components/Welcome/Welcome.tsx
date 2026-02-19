@@ -96,7 +96,7 @@ export default function Welcome(props: WelcomeProps) {
         <div className="absolute -right-10 bottom-0 h-72 w-72 rounded-full bg-pink-500/15 blur-[120px]" />
       </div>
 
-      <div className="welcome-shell relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
+      <div className="welcome-shell welcome-scale relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
         {/* Countdown banner */}
         <div className="welcome-countdown flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 shadow-lg">
           <span className="text-[11px] uppercase tracking-[0.2em] font-black text-rose-200">Next Round</span>
@@ -276,6 +276,10 @@ export default function Welcome(props: WelcomeProps) {
 
       <style jsx global>{`
         @media (max-width: 380px), (max-height: 640px) {
+          .welcome-scale {
+            transform: scale(0.92);
+            transform-origin: top center;
+          }
           .welcome-shell {
             gap: 12px;
             padding-top: 14px;
