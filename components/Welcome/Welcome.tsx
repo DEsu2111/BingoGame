@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import CardSelector from './CardSelector';
 
@@ -78,6 +78,13 @@ export default function Welcome(props: WelcomeProps) {
   const alreadyJoined = state.hasJoinedRound;
   const secondsSinceEvent =
     debugInfo?.lastEventAt ? Math.floor((Date.now() - debugInfo.lastEventAt) / 1000) : null;
+
+  useEffect(() => {
+    // When a new round starts (countdown) and player isn't joined, reset selection.
+    if (phase === 'COUNTDOWN' && !state.hasJoinedRound) {
+      setPendingSelectedIndices([]);
+    }
+  }, [phase, state.hasJoinedRound]);
 
   return (
     <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
