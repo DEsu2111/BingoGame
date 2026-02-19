@@ -96,23 +96,23 @@ export default function Welcome(props: WelcomeProps) {
         <div className="absolute -right-10 bottom-0 h-72 w-72 rounded-full bg-pink-500/15 blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
+      <div className="welcome-shell relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
         {/* Countdown banner */}
-        <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 shadow-lg">
+        <div className="welcome-countdown flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 shadow-lg">
           <span className="text-[11px] uppercase tracking-[0.2em] font-black text-rose-200">Next Round</span>
           <span className="text-2xl font-black text-rose-400 tabular-nums">{countdown}s</span>
         </div>
 
         {/* Header & Financials */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col bg-white/5 border border-white/10 rounded-xl px-3 py-2 backdrop-blur-md">
+        <div className="welcome-header flex items-start justify-between gap-3">
+          <div className="welcome-badge flex flex-col bg-white/5 border border-white/10 rounded-xl px-3 py-2 backdrop-blur-md">
             <span className="text-[10px] uppercase tracking-tight text-slate-400 font-bold">Welcome</span>
             <span className="text-sm font-black text-emerald-400 truncate max-w-[150px]">
               {nickname ? nickname : 'Player'}
             </span>
           </div>
 
-          <div className="balance-card">
+          <div className="balance-card welcome-balance">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-[0.15em] text-amber-100/80 font-semibold">
@@ -135,7 +135,7 @@ export default function Welcome(props: WelcomeProps) {
         </div>
 
         {/* Action buttons row */}
-        <div className="action-btn-group">
+        <div className="action-btn-group welcome-wallet">
           <input
             ref={walletInputRef}
             type="number"
@@ -156,7 +156,7 @@ export default function Welcome(props: WelcomeProps) {
         </div>
 
         {/* Hero centerpiece */}
-        <section className="hero-welcome-container hero-welcome-compact">
+        <section className="hero-welcome-container hero-welcome-compact welcome-hero">
           <div className="flex items-center gap-2 text-xl">
             <span className="animate-float">🎱</span>
             <span className="animate-float delay-150">🔢</span>
@@ -276,9 +276,51 @@ export default function Welcome(props: WelcomeProps) {
 
       <style jsx global>{`
         @media (max-width: 380px), (max-height: 640px) {
+          .welcome-shell {
+            gap: 12px;
+            padding-top: 14px;
+            padding-bottom: 16px;
+          }
+          .welcome-countdown {
+            padding: 6px 12px;
+          }
+          .welcome-countdown span:first-child {
+            font-size: 9px;
+          }
+          .welcome-countdown span:last-child {
+            font-size: 18px;
+          }
+          .welcome-header {
+            gap: 8px;
+          }
+          .welcome-badge {
+            padding: 6px 8px;
+          }
+          .welcome-balance {
+            min-width: 140px;
+            padding: 8px 10px;
+          }
+          .welcome-wallet {
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+          }
+          .welcome-wallet .wallet-input {
+            height: 36px;
+            font-size: 12px;
+          }
+          .welcome-wallet .action-btn {
+            height: 36px;
+            font-size: 10px;
+          }
           .hero-welcome-compact {
             padding: 4px 0;
             gap: 4px;
+          }
+          .welcome-hero .hero-title {
+            font-size: 20px;
+          }
+          .welcome-hero .hero-sub {
+            font-size: 10px;
           }
           .hero-welcome-compact .hero-title {
             font-size: 22px;
@@ -291,13 +333,17 @@ export default function Welcome(props: WelcomeProps) {
             gap: 8px;
           }
           .bet-input-compact .bet-input {
-            height: 42px;
-            font-size: 16px;
+            height: 38px;
+            font-size: 14px;
           }
           .bet-input-compact .quick-chip {
             min-width: 56px;
-            height: 30px;
+            height: 28px;
             font-size: 10px;
+          }
+          .bet-input-compact label,
+          .bet-input-compact span {
+            font-size: 9px;
           }
         }
         .balance-card {
