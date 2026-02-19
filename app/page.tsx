@@ -191,7 +191,7 @@ export default function Page() {
                 </div>
               </div>
             ) : (
-              <div className="basis-[0%] flex items-center justify-center px-6">
+              <div className="hidden basis-[0%] items-center justify-center px-6">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-center text-sm text-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                   Spectator mode — join to see your cards.
                 </div>
@@ -222,3 +222,4 @@ export default function Page() {
     />
   );
 }
+
