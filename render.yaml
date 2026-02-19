@@ -1,9 +1,21 @@
 services:
   - type: web
-    name: my-app
-    runtime: static
+    name: bingo-frontend
+    runtime: node
+    plan: free
     buildCommand: npm install && npm run build
-    staticPublishPath: build
+    startCommand: npm run start
     envVars:
-      - key: REACT_APP_API_URL
-        value: https://api.example.com
+      - key: NEXT_PUBLIC_SOCKET_URL
+        value: https://bingogame-2.onrender.com
+
+  - type: web
+    name: bingo-backend
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm run start
+    envVars:
+      - key: CLIENT_ORIGIN
+        value: https://bingogame-1-ewme.onrender.com
