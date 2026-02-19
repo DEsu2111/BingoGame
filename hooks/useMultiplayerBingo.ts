@@ -155,6 +155,21 @@ export function useMultiplayerBingo() {
   };
 
   const clearError = () => setError(null);
+  const logout = () => {
+    pendingJoinRef.current = null;
+    setNickname('');
+    setPhone('');
+    setCard(null);
+    setCalled([]);
+    setLastNumber(null);
+    setMarked(new Set(['2-2']));
+    setWinners([]);
+    setTakenSlots([]);
+    setLastWinner(null);
+    setPhase('COUNTDOWN');
+    setCountdown(60);
+    setError(null);
+  };
 
   return {
     connected,
@@ -177,6 +192,7 @@ export function useMultiplayerBingo() {
     reserveSlots,
     releaseSlots,
     clearError,
+    logout,
     transport,
     lastEventAt,
     eventCount,

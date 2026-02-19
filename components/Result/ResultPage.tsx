@@ -10,8 +10,8 @@ const TELEGRAM_BOT = 'desu'; // your bot username
 function shareToTelegram(status: 'win' | 'loss', score: number) {
   const message =
     status === 'win'
-      ? `ዋው! በቢንጎ ጨዋታ አሸነፍኩ! 🏆 የእናንተስ ዕድል እንዴት ነው? በ @${TELEGRAM_BOT} ይሞክሩ!`
-      : `ጥቂት ነው የቀረኝ! 🥺 በቀጣይ በእርግጠኝነት አሸንፋለሁ! እናንተም በ @${TELEGRAM_BOT} ተጫወቱ!`;
+      ? `You won this round! Share your win at @${TELEGRAM_BOT}.`
+      : `Good try! Share or get tips at @${TELEGRAM_BOT}.`;
 
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent('https://yourgame.com')}&text=${encodeURIComponent(
     message,
@@ -23,17 +23,17 @@ function shareToTelegram(status: 'win' | 'loss', score: number) {
 
 export default function ResultPage() {
   const { state, dispatch } = useGame();
-  const { nickname, lastWinner } = useMultiplayerBingo();
+  const { nickname, lastWinner, logout } = useMultiplayerBingo();
 
   const winnerName = lastWinner ?? state.winnerName ?? null;
   const isSelfWinner = winnerName && nickname && winnerName === nickname;
   const noWinner = winnerName === 'No winner' || !winnerName;
 
-  // After 6s, return to welcome and wait for the next server countdown to hit 0
+  // After 10s, return to welcome and wait for the next server countdown to hit 0
   useEffect(() => {
     const id = setTimeout(() => {
       dispatch({ type: 'PLAY_AGAIN' });
-    }, 6000);
+    }, 10000);
     return () => clearTimeout(id);
   }, [dispatch]);
 
@@ -53,9 +53,8 @@ export default function ResultPage() {
       ? 'No one claimed Bingo this round. Try again next round.'
       : `${winnerName} took this round. You can win the next one.`;
 
-  const icon = isSelfWinner ? '🏆' : noWinner ? '😮‍💨' : '🎉';
-  const actionLabel = isSelfWinner ? 'Share to Telegram' : 'Play Next Round';
-  const actionClick = () => (isSelfWinner ? shareToTelegram('win', state.winAmount) : dispatch({ type: 'PLAY_AGAIN' }));
+  const actionLabel = 'Share to Telegram (share link)';
+  const actionClick = () => shareToTelegram('win', state.winAmount);
 
   const detailLines = useMemo(() => {
     const lines = [
@@ -76,11 +75,21 @@ export default function ResultPage() {
     <main className={`min-h-screen p-4 sm:p-6 md:p-8 ${bgClass}`}>
       <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col items-center justify-center">
         <div className={`relative w-full overflow-hidden rounded-3xl border border-white/15 p-6 sm:p-8 shadow-2xl ${cardClass}`}>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              dispatch({ type: 'PLAY_AGAIN' });
+            }}
+            className="absolute right-4 top-4 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
+          >
+            Log out
+          </button>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/16 via-white/6 to-transparent blur-3xl" />
           {isSelfWinner ? <div className="confetti confetti-1" /> : null}
           {isSelfWinner ? <div className="confetti confetti-2" /> : null}
           <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-            <div className={isSelfWinner ? 'trophy-blob' : 'robot-blob'}>{icon}</div>
+            <div className={isSelfWinner ? 'trophy-blob' : 'robot-blob'}>{isSelfWinner ? 'WIN' : 'TRY'}</div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg">
               {headline}
             </h1>
@@ -94,22 +103,8 @@ export default function ResultPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="button" onClick={actionClick} className={isSelfWinner ? 'btn-telegram' : 'btn-double'}>
-                {isSelfWinner ? '✈️ ' : '🔁 '} {actionLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: 'PLAY_AGAIN' })}
-                className="btn-ghost"
-              >
-                Play Again
-              </button>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: 'VIEW_GAME' })}
-                className="btn-ghost-secondary"
-              >
-                View Drawn Numbers
+              <button type="button" onClick={actionClick} className="btn-telegram">
+                Share to Telegram (share link)
               </button>
             </div>
             <div className="w-full pt-4 text-center text-sm text-white/80">
