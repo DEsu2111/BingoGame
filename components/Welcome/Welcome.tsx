@@ -12,6 +12,7 @@ export type WelcomeProps = {
   countdown?: number;
   takenSlots?: number[];
   onReserveSlots?: (slots: number[]) => void;
+  onReleaseSlots?: (slots: number[]) => void;
   debugInfo?: { transport: string; lastEventAt: number | null; eventCount: number };
 };
 
@@ -24,6 +25,7 @@ export default function Welcome(props: WelcomeProps) {
     countdown: sharedCountdown,
     takenSlots = [],
     onReserveSlots,
+    onReleaseSlots,
     debugInfo,
   } = props;
   const { state, dispatch } = useGame();
@@ -41,7 +43,7 @@ export default function Welcome(props: WelcomeProps) {
   }, [betInput]);
 
   // Allow start regardless of bet/cards for manual start; countdown just arms readiness
-  const canProceed = pendingSelectedIndices.length === 2 && !state.hasJoinedRound;
+  const canProceed = pendingSelectedIndices.length === 2;
 
   /**
    * Move to the game page and start calls.
@@ -50,6 +52,9 @@ export default function Welcome(props: WelcomeProps) {
   const handleStart = () => {
     if (!canProceed) return;
     const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
+    if (state.selectedCardIndices.length === 2) {
+      onReleaseSlots?.(state.selectedCardIndices.map((index) => index + 1));
+    }
     if (pendingSelectedIndices.length) {
       dispatch({ type: 'SELECT_CARDS', payload: pendingSelectedIndices });
       onReserveSlots?.(pendingSelectedIndices.map((index) => index + 1));
@@ -231,7 +236,7 @@ export default function Welcome(props: WelcomeProps) {
               {pendingSelectedIndices.length}/2
             </p>
           </div>
-          {error && !alreadyJoined && (
+          {error && (
             <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-200 space-y-2">
               <p>{error}</p>
               {isReservedError ? (
@@ -247,7 +252,7 @@ export default function Welcome(props: WelcomeProps) {
           )}
           {alreadyJoined && (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200">
-              You have joined this round. New cards can be selected in the next round.
+              You can change cards during this round. Joining again will charge the bet again.
             </div>
           )}
           <div className="max-h-36 overflow-y-auto pr-1">
@@ -400,4 +405,6 @@ export default function Welcome(props: WelcomeProps) {
     </main>
   );
 }
+
+
 

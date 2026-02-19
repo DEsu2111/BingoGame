@@ -107,7 +107,8 @@ export function useMultiplayerBingo() {
 
     s.on('error', ({ message }) => {
       touchEvent();
-      setError(message);
+      const msg = String(message ?? '');
+      setError(msg);
     });
 
     return () => {

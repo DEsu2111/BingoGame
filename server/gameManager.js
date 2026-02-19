@@ -142,9 +142,12 @@ export class GameManager {
       socket.emit('error', { message: 'All cards are reserved for this round.' });
       return;
     }
-    if (player.reservedSlots.length >= 2) {
-      socket.emit('error', { message: 'You already reserved cards for this round.' });
-      return;
+    const prevSlots = [...player.reservedSlots];
+    if (prevSlots.length) {
+      for (const n of prevSlots) {
+        this.reservedSlots.delete(n);
+      }
+      player.reservedSlots = [];
     }
 
     const normalized = Array.from(
@@ -162,6 +165,9 @@ export class GameManager {
 
     const blocked = requested.filter((n) => this.reservedSlots.has(n));
     if (blocked.length) {
+      if (prevSlots.length) {
+        this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
+      }
       socket.emit('error', {
         message: `Card${blocked.length > 1 ? 's' : ''} ${blocked.join(', ')} ${blocked.length > 1 ? 'are' : 'is'} already reserved.`
       });
