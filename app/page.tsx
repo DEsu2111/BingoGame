@@ -23,9 +23,6 @@ export default function Page() {
     lastWinner,
     error,
     clearError,
-    transport,
-    lastEventAt,
-    eventCount,
     releaseSlots,
   } = useMultiplayerBingo();
 
@@ -222,7 +219,6 @@ export default function Page() {
       takenSlots={takenSlots}
       onReserveSlots={reserveSlots}
       onReleaseSlots={releaseSlots}
-      debugInfo={{ transport, lastEventAt, eventCount }}
     />
   );
 }
