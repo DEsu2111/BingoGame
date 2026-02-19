@@ -30,9 +30,16 @@ export default function Page() {
 
   const [nickInput, setNickInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
+  const [isFirstTime, setIsFirstTime] = useState(true);
 
   const isNicknameValid = nickInput.trim().length >= 3;
   const isPhoneValid = /^09\d{8}$/.test(phoneInput.trim());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasVerified = window.localStorage.getItem('bingo_has_verified');
+    setIsFirstTime(!hasVerified);
+  }, []);
 
   // Sync UI mode with server phase
   useEffect(() => {
@@ -75,20 +82,31 @@ export default function Page() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (isNicknameValid && isPhoneValid) join(nickInput.trim(), phoneInput.trim());
+            if (isNicknameValid && isPhoneValid) {
+              join(nickInput.trim(), phoneInput.trim());
+              if (typeof window !== 'undefined') {
+                window.localStorage.setItem('bingo_has_verified', '1');
+                setIsFirstTime(false);
+              }
+            }
           }}
           className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-6 py-5 shadow-2xl backdrop-blur space-y-4"
         >
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">Online Bingo Game</p>
-              <h1 className="text-2xl font-black">Login</h1>
+              <h1 className="text-2xl font-black">{isFirstTime ? 'Sign up' : 'Log in'}</h1>
             </div>
             <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-right">
               <p className="text-[10px] uppercase tracking-[0.18em] text-rose-200 font-semibold">Next Round</p>
               <p className="text-lg font-black text-rose-300 tabular-nums">{countdown}s</p>
             </div>
           </div>
+          <p className="text-[11px] text-slate-400">
+            {isFirstTime
+              ? 'First time: verify, then choose a nickname to play.'
+              : 'Log in to continue playing with your nickname.'}
+          </p>
           <input
             value={nickInput}
             onChange={(e) => setNickInput(e.target.value)}
