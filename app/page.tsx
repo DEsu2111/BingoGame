@@ -160,18 +160,10 @@ export default function Page() {
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Last Call</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Call</span>
               <span className="h-8 min-w-8 rounded-full bg-amber-400 text-slate-900 font-black grid place-items-center shadow-inner shadow-amber-500/50">
                 {lastNumber ?? '—'}
               </span>
-              <button
-                type="button"
-                onClick={() => state.winStatus === 'none' && state.playerCards.length && state.selectedCardIndices.length === 2 ? null : null}
-                className="ml-2 rounded-lg bg-emerald-500 px-3 py-1 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-500/40 active:scale-95"
-                disabled
-              >
-                Force Win
-              </button>
             </div>
             <div className="ml-auto flex items-center rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
               <span className="h-8 min-w-8 rounded-full bg-rose-400 text-slate-900 font-black grid place-items-center shadow-inner shadow-rose-500/50">
