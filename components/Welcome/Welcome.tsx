@@ -41,7 +41,7 @@ export default function Welcome(props: WelcomeProps) {
   }, [betInput]);
 
   // Allow start regardless of bet/cards for manual start; countdown just arms readiness
-  const canProceed = pendingSelectedIndices.length === 2;
+  const canProceed = pendingSelectedIndices.length === 2 && !state.hasJoinedRound;
 
   /**
    * Move to the game page and start calls.
@@ -75,6 +75,7 @@ export default function Welcome(props: WelcomeProps) {
   };
 
   const isReservedError = Boolean(error && error.toLowerCase().includes('reserved'));
+  const alreadyJoined = state.hasJoinedRound;
   const secondsSinceEvent =
     debugInfo?.lastEventAt ? Math.floor((Date.now() - debugInfo.lastEventAt) / 1000) : null;
 
@@ -223,7 +224,7 @@ export default function Welcome(props: WelcomeProps) {
               {pendingSelectedIndices.length}/2
             </p>
           </div>
-          {error && (
+          {error && !alreadyJoined && (
             <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-200 space-y-2">
               <p>{error}</p>
               {isReservedError ? (
@@ -235,6 +236,11 @@ export default function Welcome(props: WelcomeProps) {
                   Pick New Cards
                 </button>
               ) : null}
+            </div>
+          )}
+          {alreadyJoined && (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200">
+              You have joined this round. New cards can be selected in the next round.
             </div>
           )}
           <div className="max-h-36 overflow-y-auto pr-1">
@@ -387,3 +393,4 @@ export default function Welcome(props: WelcomeProps) {
     </main>
   );
 }
+
