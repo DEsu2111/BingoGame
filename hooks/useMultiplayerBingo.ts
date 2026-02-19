@@ -8,10 +8,9 @@ type Phase = 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
 
 export function useMultiplayerBingo() {
   const socketRef = useRef<Socket | null>(null);
-  const pendingJoinRef = useRef<{ nickname: string; phone: string } | null>(null);
+  const pendingJoinRef = useRef<{ nickname: string; token: string } | null>(null);
   const [connected, setConnected] = useState(false);
   const [nickname, setNickname] = useState('');
-  const [phone, setPhone] = useState('');
   const [phase, setPhase] = useState<Phase>('COUNTDOWN');
   const [countdown, setCountdown] = useState<number>(60); // display-friendly countdown
   const [card, setCard] = useState<BingoCard | null>(null);
@@ -117,17 +116,16 @@ export function useMultiplayerBingo() {
   }, []);
 
 
-  const join = (nick: string, phoneNumber?: string) => {
+  const join = (nick: string, token?: string) => {
     if (!socketRef.current) return;
-    if (!phoneNumber) {
-      setError('Phone number required.');
+    if (!token) {
+      setError('Authorization token required.');
       return;
     }
     setNickname(nick);
-    setPhone(phoneNumber);
-    pendingJoinRef.current = { nickname: nick, phone: phoneNumber };
+    pendingJoinRef.current = { nickname: nick, token };
     if (socketRef.current.connected) {
-      socketRef.current.emit('join', { nickname: nick, phone: phoneNumber });
+      socketRef.current.emit('join', { nickname: nick, token });
     }
   };
 
@@ -158,7 +156,6 @@ export function useMultiplayerBingo() {
   const logout = () => {
     pendingJoinRef.current = null;
     setNickname('');
-    setPhone('');
     setCard(null);
     setCalled([]);
     setLastNumber(null);
@@ -174,7 +171,6 @@ export function useMultiplayerBingo() {
   return {
     connected,
     nickname,
-    phone,
     phase,
     countdown,
     card,

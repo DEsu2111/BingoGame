@@ -29,17 +29,44 @@ export default function Page() {
   const { state, dispatch } = useGame();
 
   const [nickInput, setNickInput] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(true);
+  const [telegramReady, setTelegramReady] = useState(false);
 
   const isNicknameValid = nickInput.trim().length >= 3;
-  const isPhoneValid = /^09\d{8}$/.test(phoneInput.trim());
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const hasVerified = window.localStorage.getItem('bingo_has_verified');
-    setIsFirstTime(!hasVerified);
-  }, []);
+    const tg = (window as unknown as { Telegram?: any }).Telegram;
+    const initData = tg?.WebApp?.initData;
+    if (tg?.WebApp?.ready) tg.WebApp.ready();
+    if (!initData) {
+      setTelegramReady(false);
+      return;
+    }
+    setTelegramReady(true);
+    if (authToken) return;
+    fetch('/api/auth/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Auth failed');
+        setAuthToken(data.token);
+        setIsFirstTime(Boolean(data.isFirstTime));
+        if (data.user?.nickname) {
+          setNickInput(data.user.nickname);
+        } else if (data.user?.username) {
+          setNickInput(data.user.username);
+        } else if (data.user?.firstName) {
+          setNickInput(data.user.firstName);
+        }
+      })
+      .catch((err) => setAuthError(String(err.message || err)));
+  }, [authToken]);
 
   // Sync UI mode with server phase
   useEffect(() => {
@@ -82,13 +109,27 @@ export default function Page() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (isNicknameValid && isPhoneValid) {
-              join(nickInput.trim(), phoneInput.trim());
-              if (typeof window !== 'undefined') {
-                window.localStorage.setItem('bingo_has_verified', '1');
-                setIsFirstTime(false);
-              }
+            if (!authToken) return;
+            if (isFirstTime) {
+              if (!isNicknameValid) return;
+              fetch('/api/auth/nickname', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({ nickname: nickInput.trim() }),
+              })
+                .then(async (res) => {
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data?.error || 'Nickname update failed');
+                  setIsFirstTime(false);
+                  join(nickInput.trim(), authToken);
+                })
+                .catch((err) => setAuthError(String(err.message || err)));
+              return;
             }
+            join(nickInput.trim(), authToken);
           }}
           className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-6 py-5 shadow-2xl backdrop-blur space-y-4"
         >
@@ -103,9 +144,11 @@ export default function Page() {
             </div>
           </div>
           <p className="text-[11px] text-slate-400">
-            {isFirstTime
-              ? 'First time: verify, then choose a nickname to play.'
-              : 'Log in to continue playing with your nickname.'}
+            {!telegramReady
+              ? 'Open this page inside Telegram to continue.'
+              : isFirstTime
+                ? 'First time: verify, then choose a nickname to play.'
+                : 'Log in to continue playing with your nickname.'}
           </p>
           <input
             value={nickInput}
@@ -113,30 +156,20 @@ export default function Page() {
             placeholder="Nickname (min 3 characters)"
             className="w-full rounded-lg bg-slate-900 border border-white/15 px-3 py-2 text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
           />
-          <input
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            placeholder="Phone number (09########)"
-            inputMode="numeric"
-            maxLength={10}
-            className="w-full rounded-lg bg-slate-900 border border-white/15 px-3 py-2 text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
-          />
           <button
             type="submit"
-            disabled={!isNicknameValid || !isPhoneValid}
+            disabled={!telegramReady || !authToken || (isFirstTime && !isNicknameValid)}
             className="w-full rounded-lg bg-emerald-500 text-slate-900 font-bold py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {connected ? 'Login' : 'Login (connecting...)'}
+            {isFirstTime ? 'Sign up' : connected ? 'Log in' : 'Log in (connecting...)'}
           </button>
           <p className="text-[11px] text-slate-400">
-            Enter a nickname and phone number to continue. Status: {connected ? 'connected' : 'waiting for server...'}
+            Status: {connected ? 'connected' : 'waiting for server...'}
           </p>
           {!isNicknameValid && nickInput.length > 0 && (
             <p className="text-[11px] text-rose-300">Nickname must be at least 3 characters.</p>
           )}
-          {!isPhoneValid && phoneInput.length > 0 && (
-            <p className="text-[11px] text-rose-300">Phone must start with 09 and be 10 digits.</p>
-          )}
+          {authError && <p className="text-[11px] text-rose-300">{authError}</p>}
           {error && <p className="text-[11px] text-rose-300">{error}</p>}
         </form>
       </div>

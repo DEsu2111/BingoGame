@@ -1,5 +1,6 @@
 import { generateCard } from './utils/cardGenerator.js';
 import { checkWin } from './utils/winChecker.js';
+import jwt from 'jsonwebtoken';
 
 const PHASES = { COUNTDOWN: 'COUNTDOWN', ACTIVE: 'ACTIVE', ENDED: 'ENDED' };
 
@@ -13,7 +14,7 @@ export class GameManager {
     this.countdownSeconds = countdownSeconds;
     this.callIntervalMs = callIntervalMs;
 
-    this.players = new Map(); // socketId -> { nickname, phone, card, marked:Set<string>, reservedSlots:number[] }
+    this.players = new Map(); // socketId -> { nickname, telegramUserId, card, marked:Set<string>, reservedSlots:number[] }
     this.usedCards = new Set(); // unique card signatures this round
     this.reservedSlots = new Set(); // shared slot ids (1..30) reserved this round
     this.calledNumbers = new Set();
@@ -88,33 +89,38 @@ export class GameManager {
     socket.on('disconnect', () => this.handleDisconnect(socket));
   }
 
-  handleJoin(socket, { nickname, phone } = {}) {
+  handleJoin(socket, { nickname, token } = {}) {
     if (this.players.size >= 15) {
       socket.emit('error', { message: 'Game is full (max 15 players).' });
       return;
     }
-    if (!nickname || typeof nickname !== 'string') {
-      socket.emit('error', { message: 'Nickname required' });
+    if (!token || typeof token !== 'string') {
+      socket.emit('error', { message: 'Authorization required.' });
       return;
     }
-    if (!phone || typeof phone !== 'string') {
-      socket.emit('error', { message: 'Phone number required' });
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET || '');
+    } catch {
+      socket.emit('error', { message: 'Invalid authorization.' });
       return;
     }
-    if (!/^09\d{8}$/.test(phone)) {
-      socket.emit('error', { message: 'Phone must start with 09 and be 10 digits.' });
+    const telegramUserId = String(payload.telegramUserId || '');
+    const safeNickname = String(payload.nickname || nickname || 'Player').trim();
+    if (!telegramUserId) {
+      socket.emit('error', { message: 'Invalid user.' });
       return;
     }
     for (const player of this.players.values()) {
-      if (player.phone === phone) {
-        socket.emit('error', { message: 'This phone number is already in the game.' });
+      if (player.telegramUserId === telegramUserId) {
+        socket.emit('error', { message: 'This Telegram user is already in the game.' });
         return;
       }
     }
 
     const card = this.generateUniqueCard();
     const marked = new Set(['2-2']); // free
-    this.players.set(socket.id, { nickname, phone, card, marked, reservedSlots: [] });
+    this.players.set(socket.id, { nickname: safeNickname, telegramUserId, card, marked, reservedSlots: [] });
 
     socket.emit('joined', {
       playerId: socket.id,
@@ -128,7 +134,7 @@ export class GameManager {
       }
     });
 
-    this.io.emit('playerJoined', { nickname, playerCount: this.players.size });
+    this.io.emit('playerJoined', { nickname: safeNickname, playerCount: this.players.size });
 
     // Send immediate timer snapshot if in countdown
     if (this.phase === PHASES.COUNTDOWN) socket.emit('countdown', { timeLeft: this.countdown });
