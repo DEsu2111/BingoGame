@@ -277,7 +277,7 @@ export default function Welcome(props: WelcomeProps) {
       <style jsx global>{`
         @media (max-width: 380px), (max-height: 640px) {
           .welcome-scale {
-            transform: scale(0.84);
+            transform: scale(0.78);
             transform-origin: top center;
           }
           .welcome-shell {
