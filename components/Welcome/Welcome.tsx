@@ -89,7 +89,7 @@ export default function Welcome(props: WelcomeProps) {
   }, [phase, state.hasJoinedRound]);
 
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-y-auto">
+    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-[90px]" />
@@ -156,7 +156,7 @@ export default function Welcome(props: WelcomeProps) {
         </div>
 
         {/* Hero centerpiece */}
-        <section className="hero-welcome-container">
+        <section className="hero-welcome-container hero-welcome-compact">
           <div className="flex items-center gap-2 text-xl">
             <span className="animate-float">🎱</span>
             <span className="animate-float delay-150">🔢</span>
@@ -168,7 +168,7 @@ export default function Welcome(props: WelcomeProps) {
         </section>
 
         {/* Betting interface */}
-        <section className="bg-white/5 border border-white/10 rounded-4xl p-4 space-y-3 backdrop-blur-xl shadow-2xl bet-input-wrapper">
+        <section className="bg-white/5 border border-white/10 rounded-4xl p-4 space-y-3 backdrop-blur-xl shadow-2xl bet-input-wrapper bet-input-compact">
           <div className="flex justify-between items-center">
             <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Enter Bet</label>
             <span className="text-[10px] text-emerald-400 font-bold">Payout: 2x</span>
@@ -245,7 +245,7 @@ export default function Welcome(props: WelcomeProps) {
               You can change cards during this round. Joining again will charge the bet again.
             </div>
           )}
-          <div className="max-h-36 overflow-y-auto pr-1">
+          <div className="max-h-28 overflow-y-auto pr-1">
             <CardSelector
               cards={state.allCards}
               selectedIndices={pendingSelectedIndices}
@@ -275,6 +275,31 @@ export default function Welcome(props: WelcomeProps) {
       </div>
 
       <style jsx global>{`
+        @media (max-width: 380px), (max-height: 640px) {
+          .hero-welcome-compact {
+            padding: 4px 0;
+            gap: 4px;
+          }
+          .hero-welcome-compact .hero-title {
+            font-size: 22px;
+          }
+          .hero-welcome-compact .hero-sub {
+            font-size: 11px;
+          }
+          .bet-input-compact {
+            padding: 10px;
+            gap: 8px;
+          }
+          .bet-input-compact .bet-input {
+            height: 42px;
+            font-size: 16px;
+          }
+          .bet-input-compact .quick-chip {
+            min-width: 56px;
+            height: 30px;
+            font-size: 10px;
+          }
+        }
         .balance-card {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(251, 191, 36, 0.35);

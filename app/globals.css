@@ -791,3 +791,21 @@ input:focus-visible, button:focus-visible {
     font-size:16px;
   }
 }
+@media (max-width: 380px), (max-height: 640px) {
+  .player-cards .bingo-card{
+    max-width: 13.25rem;
+    padding:5px;
+  }
+  .player-cards .bingo-head{
+    font-size:10px;
+  }
+  .player-cards .bingo-cell{
+    width:40px;
+    height:40px;
+    font-size:14px;
+  }
+  .card-shell{
+    max-width: 14.5rem;
+    padding:8px;
+  }
+}
