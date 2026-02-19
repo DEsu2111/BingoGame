@@ -81,7 +81,7 @@ export default function ResultPage() {
               logout();
               dispatch({ type: 'PLAY_AGAIN' });
             }}
-            className="absolute right-4 top-4 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
+            className="absolute right-4 top-4 z-20 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
           >
             Log out
           </button>
