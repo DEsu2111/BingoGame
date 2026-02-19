@@ -765,6 +765,9 @@ input:focus-visible, button:focus-visible {
 }
 
 /* Player cards sizing (right panel) */
+.player-cards{
+  gap: 2%;
+}
 .player-cards .bingo-card{
   max-width: 19rem;
   padding:8px;
@@ -792,20 +795,23 @@ input:focus-visible, button:focus-visible {
   }
 }
 @media (max-width: 380px), (max-height: 640px) {
+  .player-cards{
+    gap: 1.5%;
+  }
   .player-cards .bingo-card{
-    max-width: 13.25rem;
-    padding:5px;
+    max-width: 12.25rem;
+    padding:4px;
   }
   .player-cards .bingo-head{
     font-size:10px;
   }
   .player-cards .bingo-cell{
-    width:40px;
-    height:40px;
-    font-size:14px;
+    width:36px;
+    height:36px;
+    font-size:13px;
   }
   .card-shell{
-    max-width: 14.5rem;
-    padding:8px;
+    max-width: 13.5rem;
+    padding:6px;
   }
 }
