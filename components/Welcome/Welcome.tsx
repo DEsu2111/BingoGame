@@ -278,15 +278,16 @@ export default function Welcome(props: WelcomeProps) {
         @media (max-width: 380px), (max-height: 640px) {
           .small-scroll {
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
           .welcome-scale {
-            transform: scale(0.78);
-            transform-origin: top center;
+            transform: none;
           }
           .welcome-shell {
             gap: 10px;
             padding-top: 0;
-            padding-bottom: 14px;
+            padding-bottom: 24px;
+            min-height: 100%;
           }
           .welcome-countdown {
             padding: 5px 10px;
