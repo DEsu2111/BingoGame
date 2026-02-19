@@ -89,7 +89,7 @@ export default function Welcome(props: WelcomeProps) {
   }, [phase, state.hasJoinedRound]);
 
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden">
+    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden small-scroll">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-[90px]" />
@@ -276,6 +276,9 @@ export default function Welcome(props: WelcomeProps) {
 
       <style jsx global>{`
         @media (max-width: 380px), (max-height: 640px) {
+          .small-scroll {
+            overflow-y: auto;
+          }
           .welcome-scale {
             transform: scale(0.78);
             transform-origin: top center;
