@@ -256,11 +256,11 @@ export default function Welcome(props: WelcomeProps) {
         </section>
 
         {/* CTA */}
-        <footer className="pb-2">
+        <footer className="pb-2 welcome-footer">
           <button
             onClick={handleStart}
             disabled={!canProceed}
-            className={`w-full h-16 rounded-2xl font-black uppercase tracking-[0.2em] transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-3
+            className={`w-full h-16 rounded-2xl font-black uppercase tracking-[0.2em] transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-3 join-btn
               ${canProceed 
                 ? 'bg-emerald-500 text-slate-950 shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:bg-emerald-400' 
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -282,7 +282,7 @@ export default function Welcome(props: WelcomeProps) {
           }
           .welcome-shell {
             gap: 10px;
-            padding-top: 12px;
+            padding-top: 0;
             padding-bottom: 14px;
           }
           .welcome-countdown {
@@ -351,6 +351,14 @@ export default function Welcome(props: WelcomeProps) {
           }
           .bet-input-compact .quick-chip.flex-1 {
             min-width: 64px;
+          }
+          .join-btn {
+            height: 36px;
+            font-size: 11px;
+            letter-spacing: 0.14em;
+          }
+          .welcome-footer {
+            padding-top: 0;
           }
         }
         .balance-card {
