@@ -763,3 +763,31 @@ input:focus-visible, button:focus-visible {
     font-size:12px;
   }
 }
+
+/* Player cards sizing (right panel) */
+.player-cards .bingo-card{
+  max-width: 19rem;
+  padding:8px;
+}
+.player-cards .bingo-head{
+  font-size:12px;
+}
+.player-cards .bingo-cell{
+  width:52px;
+  height:52px;
+  font-size:16px;
+}
+@media (max-width: 480px) {
+  .player-cards .bingo-card{
+    max-width: 14.5rem;
+    padding:6px;
+  }
+  .player-cards .bingo-head{
+    font-size:11px;
+  }
+  .player-cards .bingo-cell{
+    width:42px;
+    height:42px;
+    font-size:14px;
+  }
+}

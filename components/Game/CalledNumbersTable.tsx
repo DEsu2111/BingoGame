@@ -1,7 +1,7 @@
 // Randomized list of all 75 numbers, highlighting those already drawn.
 'use client';
 
-import { MutableRefObject, useMemo, useState } from 'react';
+import { MutableRefObject, useMemo } from 'react';
 
 interface CalledNumbersTableProps {
   called: Set<number>;
@@ -15,18 +15,14 @@ function hashOrder(value: number, seed: number) {
 }
 
 export default function CalledNumbersTable({ called, currentCall = null, cellRefs }: CalledNumbersTableProps) {
-  const [mode, setMode] = useState<'all' | 'remaining'>('all');
   const seed = called.size + 1;
 
   const numbers = useMemo(() => {
     const base = Array.from({ length: 75 }, (_, i) => i + 1).sort(
       (a, b) => hashOrder(a, seed) - hashOrder(b, seed),
     );
-    if (mode === 'remaining') {
-      return base.filter((num) => !called.has(num));
-    }
     return base;
-  }, [called, mode, seed]);
+  }, [called, seed]);
 
   const rows: number[][] = [];
   for (let i = 0; i < numbers.length; i += 5) {
@@ -35,33 +31,11 @@ export default function CalledNumbersTable({ called, currentCall = null, cellRef
     rows.push(slice);
   }
 
-  const progress = Math.round((called.size / 75) * 100);
   const lastCalled = currentCall;
 
   return (
     <section className="relative flex h-full w-full flex-col rounded-2xl border border-white/10 bg-slate-900/70 p-0 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-2 px-1 py-1">
-        <div className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-100 shadow-inner">
-          {called.size}/75 · {progress}%
-        </div>
-        <div className="pill-toggle" role="group" aria-label="Filter numbers">
-          <button
-            type="button"
-            onClick={() => setMode('all')}
-            className={`pill-segment ${mode === 'all' ? 'pill-active' : ''}`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('remaining')}
-            className={`pill-segment ${mode === 'remaining' ? 'pill-active' : ''}`}
-          >
-            Remaining
-          </button>
-          <span className={`pill-slider ${mode === 'remaining' ? 'translate-x-full' : ''}`} />
-        </div>
-      </div>
+
 
       <div className="flex-1 overflow-hidden">
         <table className="h-full w-full border-collapse text-center text-sm">
@@ -120,10 +94,11 @@ export default function CalledNumbersTable({ called, currentCall = null, cellRef
         <span className="legend-dot bg-slate-500" /> <span>Not called</span>
         <span className="legend-dot border border-dashed border-slate-500" /> <span>Placeholder</span>
         <span className="ml-3 rounded-full bg-amber-400/20 px-2 py-1 font-semibold text-amber-200">
-          Current: {currentCall ?? '—'}
+          Current: {currentCall ?? '-'}
         </span>
       </div>
     </section>
   );
 }
+
 
