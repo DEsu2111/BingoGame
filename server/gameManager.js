@@ -29,6 +29,19 @@ export class GameManager {
     this.startCountdown();
   }
 
+  getCurrentState() {
+    const calledNumbers = [...this.calledNumbers];
+    const lastNumber = calledNumbers.length ? calledNumbers[calledNumbers.length - 1] : null;
+    return {
+      phase: this.phase,
+      countdown: this.phase === PHASES.COUNTDOWN ? this.countdown : 0,
+      calledNumbers,
+      lastNumber,
+      winners: this.lastWinners,
+      takenSlots: [...this.reservedSlots],
+    };
+  }
+
   startCountdown() {
     this.phase = PHASES.COUNTDOWN;
     this.countdown = this.countdownSeconds;
@@ -87,6 +100,7 @@ export class GameManager {
 
   registerSocket(socket) {
     socket.on('join', (payload) => this.handleJoin(socket, payload));
+    socket.on('syncState', () => this.handleSyncState(socket));
     socket.on('reserveCards', ({ slots }) => this.handleReserve(socket, slots));
     socket.on('releaseCards', ({ slots }) => this.handleRelease(socket, slots));
     socket.on('markCell', (payload) => this.handleMark(socket, payload));
@@ -96,29 +110,29 @@ export class GameManager {
 
   handleJoin(socket, { nickname, token } = {}) {
     if (this.players.size >= 15) {
-      socket.emit('error', { message: 'Game is full (max 15 players).' });
+      socket.emit('gameError', { message: 'Game is full (max 15 players).' });
       return;
     }
     if (!token || typeof token !== 'string') {
-      socket.emit('error', { message: 'Authorization required.' });
+      socket.emit('gameError', { message: 'Authorization required.' });
       return;
     }
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET || '');
     } catch {
-      socket.emit('error', { message: 'Invalid authorization.' });
+      socket.emit('gameError', { message: 'Invalid authorization.' });
       return;
     }
     const telegramUserId = String(payload.telegramUserId || '');
     const safeNickname = String(payload.nickname || nickname || 'Player').trim();
     if (!telegramUserId) {
-      socket.emit('error', { message: 'Invalid user.' });
+      socket.emit('gameError', { message: 'Invalid user.' });
       return;
     }
     for (const player of this.players.values()) {
       if (player.telegramUserId === telegramUserId) {
-        socket.emit('error', { message: 'This Telegram user is already in the game.' });
+        socket.emit('gameError', { message: 'This Telegram user is already in the game.' });
         return;
       }
     }
@@ -141,13 +155,7 @@ export class GameManager {
     socket.emit('joined', {
       playerId: socket.id,
       cards: player?.cards ?? [],
-      currentState: {
-        phase: this.phase,
-        countdown: this.phase === PHASES.COUNTDOWN ? this.countdown : 0,
-        calledNumbers: [...this.calledNumbers],
-        winners: this.lastWinners,
-        takenSlots: [...this.reservedSlots],
-      }
+      currentState: this.getCurrentState(),
     });
 
     this.io.emit('playerJoined', { nickname: safeNickname, playerCount: this.players.size });
@@ -157,11 +165,22 @@ export class GameManager {
     if (this.phase === PHASES.ACTIVE) socket.emit('gameStart');
   }
 
+  handleSyncState(socket) {
+    const player = this.players.get(socket.id);
+    socket.emit('stateSync', {
+      currentState: this.getCurrentState(),
+      player: {
+        cards: player?.cards ?? [],
+        reservedSlots: player?.reservedSlots ?? [],
+      },
+    });
+  }
+
   handleReserve(socket, slots) {
     const player = this.players.get(socket.id);
     if (!player || !Array.isArray(slots)) return;
     if (this.reservedSlots.size >= 30) {
-      socket.emit('error', { message: 'All cards are reserved for this round.' });
+      socket.emit('gameError', { message: 'All cards are reserved for this round.' });
       return;
     }
     const prevSlots = [...player.reservedSlots];
@@ -181,7 +200,7 @@ export class GameManager {
     );
     const requested = normalized.slice(0, 2);
     if (requested.length < 2) {
-      socket.emit('error', { message: 'Select 2 cards to join the game.' });
+      socket.emit('gameError', { message: 'Select 2 cards to join the game.' });
       return;
     }
 
@@ -190,7 +209,7 @@ export class GameManager {
       if (prevSlots.length) {
         this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
       }
-      socket.emit('error', {
+      socket.emit('gameError', {
         message: `Card${blocked.length > 1 ? 's' : ''} ${blocked.join(', ')} ${blocked.length > 1 ? 'are' : 'is'} already reserved.`
       });
       return;
@@ -278,7 +297,7 @@ export class GameManager {
       this.endRoundWithWinner(player, winningCardIndex);
       return;
     }
-    socket.emit('error', { message: 'No valid Bingo yet.' });
+    socket.emit('gameError', { message: 'No valid Bingo yet.' });
   }
 
   endRoundWithWinner(player, winningCardIndex) {

@@ -16,7 +16,7 @@ export function useMultiplayerBingo() {
   const [cards, setCards] = useState<BingoCard[]>([]);
   const [called, setCalled] = useState<number[]>([]);
   const [lastNumber, setLastNumber] = useState<number | null>(null);
-  const [marked, setMarked] = useState<Set<string>>(new Set(['2-2']));
+  const [marked, setMarked] = useState<Set<string>>(new Set(['0-2-2']));
   const [winners, setWinners] = useState<{ nickname: string; at: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [takenSlots, setTakenSlots] = useState<number[]>([]);
@@ -69,27 +69,68 @@ export function useMultiplayerBingo() {
 
   useEffect(() => {
     const s = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3001', {
-      transports: ['polling'],
-      upgrade: false,
+      transports: ['websocket', 'polling'],
+      upgrade: true,
     });
     socketRef.current = s;
+
+    const requestSyncState = () => {
+      s.emit('syncState');
+    };
 
     s.on('connect', () => {
       setConnected(true);
       setTransport(s.io.engine.transport.name);
-    });
-    s.on('disconnect', () => setConnected(false));
-    s.on('connect', () => {
+      setError(null);
+      requestSyncState();
       const pending = pendingJoinRef.current;
       if (pending) {
         s.emit('join', pending);
       }
+    });
+    s.on('disconnect', () => {
+      setConnected(false);
+      setTransport('disconnected');
+    });
+    s.on('connect_error', (err) => {
+      setConnected(false);
+      setError(`Connection error: ${String(err?.message ?? 'socket connect failed')}`);
+    });
+    s.io.on('reconnect_attempt', () => {
+      setTransport('reconnecting');
+    });
+    s.io.on('reconnect', () => {
+      setConnected(true);
+      setTransport(s.io.engine.transport.name);
+      requestSyncState();
     });
 
     const touchEvent = () => {
       setLastEventAt(Date.now());
       setEventCount((c) => c + 1);
     };
+
+    s.on('stateSync', ({ currentState, player }) => {
+      touchEvent();
+      const phaseFromServer: Phase = currentState?.phase ?? 'COUNTDOWN';
+      const calledNumbers: number[] = Array.isArray(currentState?.calledNumbers) ? currentState.calledNumbers : [];
+      setPhase(phaseFromServer);
+      setCountdown(phaseFromServer === 'COUNTDOWN' ? Number(currentState?.countdown ?? 60) : 0);
+      setCalled(calledNumbers);
+      setLastNumber(
+        Number.isInteger(currentState?.lastNumber)
+          ? currentState.lastNumber
+          : calledNumbers.length
+            ? calledNumbers[calledNumbers.length - 1]
+            : null,
+      );
+      setWinners(Array.isArray(currentState?.winners) ? currentState.winners : []);
+      setTakenSlots(Array.isArray(currentState?.takenSlots) ? currentState.takenSlots : []);
+      setCards(normalizeCards(player?.cards ?? []));
+      if (phaseFromServer === 'COUNTDOWN' && Number(currentState?.countdown ?? 0) >= 59) {
+        setLastWinner(null);
+      }
+    });
 
     s.on('joined', ({ cards: assignedCards, currentState }) => {
       touchEvent();
@@ -163,7 +204,7 @@ export function useMultiplayerBingo() {
       setTakenSlots(Array.isArray(slots) ? slots : []);
     });
 
-    s.on('error', ({ message }) => {
+    s.on('gameError', ({ message }) => {
       touchEvent();
       const msg = String(message ?? '');
       setError(msg);
