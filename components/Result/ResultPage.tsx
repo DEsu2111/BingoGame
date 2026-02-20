@@ -5,13 +5,14 @@ import { useEffect, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useMultiplayerBingo } from '@/hooks/useMultiplayerBingo';
 
-const TELEGRAM_BOT = 'desu'; // your bot username
+const TELEGRAM_BOT_USERNAME = 'OnlineBingoGame_bot';
+const TELEGRAM_BOT_NAME = 'BingoGame';
 
 function shareToTelegram(status: 'win' | 'loss', score: number) {
   const message =
     status === 'win'
-      ? `You won this round! Share your win at @${TELEGRAM_BOT}.`
-      : `Good try! Share or get tips at @${TELEGRAM_BOT}.`;
+      ? `You won this round! Share your win at @${TELEGRAM_BOT_USERNAME}.`
+      : `Good try! Share or get tips at @${TELEGRAM_BOT_USERNAME}.`;
 
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent('https://yourgame.com')}&text=${encodeURIComponent(
     message,
@@ -109,17 +110,17 @@ export default function ResultPage() {
             </div>
             <div className="w-full pt-4 text-center text-sm text-white/80">
               {isSelfWinner ? (
-                <p className="font-semibold">Share the win with friends via Telegram bot <strong>@desu</strong></p>
+                <p className="font-semibold">Share the win with friends via Telegram bot <strong>{TELEGRAM_BOT_NAME}</strong></p>
               ) : (
-                <p className="font-semibold">Need a boost? Chat with bot <strong>@desu</strong> to share or get tips.</p>
+                <p className="font-semibold">Need a boost? Chat with bot <strong>{TELEGRAM_BOT_NAME}</strong> to share or get tips.</p>
               )}
               <a
-                href="https://t.me/desu"
+                href={`https://t.me/${TELEGRAM_BOT_USERNAME}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center mt-2 px-4 py-2 rounded-full bg-white/15 border border-white/25 text-sm font-bold text-white hover:bg-white/20"
               >
-                Open @desu
+                Open {TELEGRAM_BOT_NAME}
               </a>
             </div>
           </div>
