@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMultiplayerBingo } from '@/hooks/useMultiplayerBingo';
 import { useGame } from '@/context/GameContext';
 import Welcome from '@/components/Welcome/Welcome';
@@ -33,29 +33,55 @@ export default function Page() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(true);
   const [telegramReady, setTelegramReady] = useState(false);
+  const authRequestInFlightRef = useRef(false);
 
   const isNicknameValid = nickInput.trim().length >= 3;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const tg = (window as unknown as { Telegram?: any }).Telegram;
-    const initData = tg?.WebApp?.initData;
-    if (tg?.WebApp?.ready) tg.WebApp.ready();
-    if (!initData) {
-      setTelegramReady(false);
-      return;
-    }
-    setTelegramReady(true);
     if (authToken) return;
-    fetch('/api/auth/telegram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Auth failed');
-        setAuthToken(data.token);
+
+    let cancelled = false;
+    let attemptsWithoutInitData = 0;
+
+    const authenticateWithTelegram = async () => {
+      if (cancelled || authRequestInFlightRef.current || authToken) return;
+
+      const tg = (window as unknown as {
+        Telegram?: { WebApp?: { initData?: string; ready?: () => void } };
+      }).Telegram;
+      tg?.WebApp?.ready?.();
+
+      const initData = tg?.WebApp?.initData;
+      if (!initData) {
+        attemptsWithoutInitData += 1;
+        setTelegramReady(false);
+        if (attemptsWithoutInitData >= 5) {
+          setAuthError((prev) => prev ?? 'Telegram data not found. Open from bot menu button, not normal browser.');
+        }
+        return;
+      }
+
+      setTelegramReady(true);
+      setAuthError(null);
+      authRequestInFlightRef.current = true;
+
+      try {
+        const res = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+        });
+        const raw = await res.text();
+        let data: { error?: string; token?: string; isFirstTime?: boolean; user?: { nickname?: string; username?: string; firstName?: string } } = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = {};
+        }
+        if (!res.ok) throw new Error(data?.error || `Auth failed (${res.status})`);
+
+        setAuthToken(data.token ?? null);
         setIsFirstTime(Boolean(data.isFirstTime));
         if (data.user?.nickname) {
           setNickInput(data.user.nickname);
@@ -64,8 +90,22 @@ export default function Page() {
         } else if (data.user?.firstName) {
           setNickInput(data.user.firstName);
         }
-      })
-      .catch((err) => setAuthError(String(err.message || err)));
+      } catch (err) {
+        setAuthError(String((err as Error).message || err));
+      } finally {
+        authRequestInFlightRef.current = false;
+      }
+    };
+
+    void authenticateWithTelegram();
+    const intervalId = window.setInterval(() => {
+      void authenticateWithTelegram();
+    }, 1200);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [authToken]);
 
   // Sync UI mode with server phase
@@ -109,7 +149,10 @@ export default function Page() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!authToken) return;
+            if (!authToken) {
+              setAuthError('Auth is not ready yet. Open from Telegram bot menu button and wait 2-3 seconds.');
+              return;
+            }
             if (isFirstTime) {
               if (!isNicknameValid) return;
               fetch('/api/auth/nickname', {
@@ -158,7 +201,7 @@ export default function Page() {
           />
           <button
             type="submit"
-            disabled={!telegramReady || !authToken || (isFirstTime && !isNicknameValid)}
+            disabled={!telegramReady || (isFirstTime && !isNicknameValid)}
             className="w-full rounded-lg bg-emerald-500 text-slate-900 font-bold py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFirstTime ? 'Sign up' : connected ? 'Log in' : 'Log in (connecting...)'}
