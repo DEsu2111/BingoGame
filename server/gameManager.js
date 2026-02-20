@@ -10,7 +10,11 @@ function cardKey(card) {
 
 export class GameManager {
   constructor(io, { countdownSeconds = 60, callIntervalMs = 4000 } = {}) {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is required to start the game server.');
+    }
     this.io = io;
+    this.jwtSecret = process.env.JWT_SECRET;
     this.countdownSeconds = countdownSeconds;
     this.callIntervalMs = callIntervalMs;
 
@@ -101,9 +105,9 @@ export class GameManager {
   registerSocket(socket) {
     socket.on('join', (payload) => this.handleJoin(socket, payload));
     socket.on('syncState', () => this.handleSyncState(socket));
-    socket.on('reserveCards', ({ slots }) => this.handleReserve(socket, slots));
-    socket.on('releaseCards', ({ slots }) => this.handleRelease(socket, slots));
-    socket.on('markCell', (payload) => this.handleMark(socket, payload));
+    socket.on('reserveCards', (payload = {}) => this.handleReserve(socket, payload?.slots));
+    socket.on('releaseCards', (payload = {}) => this.handleRelease(socket, payload?.slots));
+    socket.on('markCell', (payload = {}) => this.handleMark(socket, payload));
     socket.on('claimBingo', () => this.handleClaim(socket));
     socket.on('disconnect', () => this.handleDisconnect(socket));
   }
@@ -119,7 +123,7 @@ export class GameManager {
     }
     let payload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || '');
+      payload = jwt.verify(token, this.jwtSecret);
     } catch {
       socket.emit('gameError', { message: 'Invalid authorization.' });
       return;
@@ -257,7 +261,8 @@ export class GameManager {
     }
   }
 
-  handleMark(socket, { cardIndex, row, col }) {
+  handleMark(socket, payload = {}) {
+    const { cardIndex, row, col } = payload;
     const player = this.players.get(socket.id);
     if (!player) return;
 

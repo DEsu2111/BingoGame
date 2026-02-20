@@ -5,6 +5,10 @@ import { Server } from 'socket.io';
 import { GameManager } from './gameManager.js';
 
 const PORT = process.env.PORT || 3001;
+if (!process.env.JWT_SECRET) {
+  console.error('Missing required environment variable: JWT_SECRET');
+  process.exit(1);
+}
 const ORIGIN = (process.env.CLIENT_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map((origin) => origin.trim())

@@ -132,16 +132,22 @@ export function useMultiplayerBingo() {
       }
     });
 
-    s.on('joined', ({ cards: assignedCards, currentState }) => {
+    s.on('joined', (payload: { cards?: unknown; currentState?: any; nickname?: string } = {}) => {
       touchEvent();
+      const currentState = payload.currentState ?? {};
+      const confirmedNickname = String(payload.nickname ?? pendingJoinRef.current?.nickname ?? '').trim();
       setPhase(currentState.phase);
       setCountdown(currentState.countdown ?? 60);
       setCalled(currentState.calledNumbers ?? []);
       setLastNumber(currentState.calledNumbers?.slice(-1)[0] ?? null);
       setWinners(currentState.winners ?? []);
-      setCards(normalizeCards(assignedCards ?? []));
+      setCards(normalizeCards(payload.cards ?? []));
       setMarked(new Set(['0-2-2']));
       setTakenSlots(currentState.takenSlots ?? []);
+      if (confirmedNickname) {
+        setNickname(confirmedNickname);
+      }
+      pendingJoinRef.current = null;
     });
 
     s.on('cardsAssigned', ({ cards: assignedCards }) => {
@@ -222,7 +228,7 @@ export function useMultiplayerBingo() {
       setError('Authorization token required.');
       return;
     }
-    setNickname(nick);
+    setError(null);
     pendingJoinRef.current = { nickname: nick, token };
     if (socketRef.current.connected) {
       socketRef.current.emit('join', { nickname: nick, token });
