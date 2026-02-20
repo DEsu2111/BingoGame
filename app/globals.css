@@ -776,7 +776,7 @@ input:focus-visible, button:focus-visible {
 }
 
 .player-card-slot {
-  height: 42%;
+  height: 49%;
   min-height: 160px;
   display: flex;
   flex-direction: column;
@@ -821,7 +821,7 @@ input:focus-visible, button:focus-visible {
   }
 
   .player-card-slot {
-    height: 42%;
+    height: 49%;
     min-height: 145px;
     gap: 3px;
     padding: 2px;
