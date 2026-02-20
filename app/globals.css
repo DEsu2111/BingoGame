@@ -765,53 +765,97 @@ input:focus-visible, button:focus-visible {
 }
 
 /* Player cards sizing (right panel) */
-.player-cards{
+.player-cards-stack {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 2%;
+  padding: 3px;
+  overflow-y: auto;
+  min-height: 0;
 }
-.player-cards .bingo-card{
-  max-width: 14rem;
-  padding:4px;
+
+.player-card-slot {
+  height: 42%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 3px;
 }
-.player-cards .bingo-head{
-  font-size:12px;
+
+.player-card-title {
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.16));
+  color: #fef3c7;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
-.player-cards .bingo-cell{
-  width:30px;
-  height:30px;
-  font-size:18px;
+
+.player-card-slot .bingo-card {
+  max-width: 100%;
+  padding: 3px;
 }
+
+.player-card-slot .bingo-head {
+  font-size: 10px;
+}
+
+.player-card-slot .bingo-cell {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
 @media (max-width: 480px) {
-  .player-cards .bingo-card{
-    max-width: 14.5rem;
-    padding:6px;
+  .player-cards-stack {
+    gap: 2%;
+    padding: 3px;
   }
-  .player-cards .bingo-head{
-    font-size:11px;
+
+  .player-card-slot {
+    height: 42%;
+    min-height: 145px;
+    gap: 3px;
+    padding: 2px;
   }
-  .player-cards .bingo-cell{
-    width:30px;
-    height:30px;
-    font-size:12px;
+
+  .player-card-title {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .player-card-slot .bingo-head {
+    font-size: 9px;
+  }
+
+  .player-card-slot .bingo-cell {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
   }
 }
+
 @media (max-width: 380px), (max-height: 640px) {
-  .player-cards{
-    gap: 1%;
+  .player-cards-stack {
+    gap: 2%;
+    padding: 2px;
   }
-  .player-cards .bingo-card{
-    max-width: 12.25rem;
-    padding:4px;
+
+  .player-card-slot {
+    min-height: 136px;
   }
-  .player-cards .bingo-head{
-    font-size:10px;
-  }
-  .player-cards .bingo-cell{
-    width:36px;
-    height:36px;
-    font-size:13px;
-  }
-  .card-shell{
-    max-width: 13.5rem;
-    padding:6px;
+
+  .player-card-slot .bingo-cell {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
   }
 }

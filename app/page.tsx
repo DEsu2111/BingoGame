@@ -265,11 +265,11 @@ export default function Page() {
 
           </div>
 
-          {/* Main layout: side by side on mobile using horizontal scroll */}
-          <section className="flex h-[90vh] w-full gap-0 overflow-hidden">
+          {/* Main layout: joined = 55/45, spectator = 70/30 with helper message */}
+          <section className="game-main flex h-[90vh] w-full gap-0 overflow-hidden">
             <div
               className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${
-                isParticipant ? 'basis-[55%]' : 'basis-[100%]'
+                isParticipant ? 'basis-[55%] max-w-[55%]' : 'basis-[70%] max-w-[70%]'
               }`}
             >
               <CalledNumbersTable
@@ -279,15 +279,15 @@ export default function Page() {
             </div>
 
             {isParticipant ? (
-              <div className="basis-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden">
-                <div className="flex h-full flex-col gap-2">
+              <div className="basis-[45%] max-w-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden">
+                <div className="player-cards-stack">
                   <PlayerCards cards={state.playerCards} />
                 </div>
               </div>
             ) : (
-              <div className="hidden basis-[0%] items-center justify-center px-6">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-center text-sm text-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-                  Spectator mode — join to see your cards.
+              <div className="basis-[30%] max-w-[30%] flex items-center justify-center p-2">
+                <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-center text-xs font-semibold text-amber-100 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                  You haven&apos;t selected cards yet.
                 </div>
               </div>
             )}
