@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,36 +11,42 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# test outputs
 /coverage
+/.nyc_output
+/test-results
+/playwright-report
 
-# next.js
+# next.js / build outputs
 /.next/
 /out/
-
-# production
 /build
+/.turbo
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.next-dev.log
 
-# env files (can opt-in for committing if needed)
+# env files (never commit secrets)
 .env*
+!.env.example
 
-# vercel
+# hosting
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-.next-dev.log
+# local DB artifacts
+prisma/*.db
+prisma/*.db-journal
 
-server/node_modules/
+# misc
+.DS_Store
+Thumbs.db
+*.pem
