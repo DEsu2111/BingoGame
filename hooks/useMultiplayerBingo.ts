@@ -5,6 +5,12 @@ import type { BingoCard, Cell } from '@/types/game';
 import { checkWin } from '@/lib/winCheckerSet';
 
 type Phase = 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
+type CommandAck<T = unknown> = {
+  ok: boolean;
+  code: string;
+  message: string;
+  data?: T;
+};
 
 export function useMultiplayerBingo() {
   const socketRef = useRef<Socket | null>(null);
@@ -24,6 +30,9 @@ export function useMultiplayerBingo() {
   const [transport, setTransport] = useState<string>('unknown');
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
   const [eventCount, setEventCount] = useState<number>(0);
+
+  const makeRequestId = (action: string) => `${action}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+  const toAckMessage = (ack?: CommandAck) => String(ack?.message ?? 'Request failed.');
 
   const normalizeCards = (incoming: unknown): BingoCard[] => {
     if (!Array.isArray(incoming)) return [];
@@ -58,13 +67,15 @@ export function useMultiplayerBingo() {
   // derived
   const canClaim = useMemo(() => {
     if (!cards.length) return false;
-    const card0Marked = new Set<string>();
-    cards[0].forEach((row, r) => {
-      row.forEach((cell, c) => {
-        if (cell.marked) card0Marked.add(`${r}-${c}`);
+    return cards.some((card) => {
+      const markedSet = new Set<string>();
+      card.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell.marked) markedSet.add(`${r}-${c}`);
+        });
       });
+      return checkWin(markedSet);
     });
-    return checkWin(card0Marked);
   }, [cards]);
 
   useEffect(() => {
@@ -85,7 +96,12 @@ export function useMultiplayerBingo() {
       requestSyncState();
       const pending = pendingJoinRef.current;
       if (pending) {
-        s.emit('join', pending);
+        s.emit('join', { ...pending, requestId: makeRequestId('join') }, (ack?: CommandAck) => {
+          if (!ack?.ok) {
+            setError(toAckMessage(ack));
+            pendingJoinRef.current = null;
+          }
+        });
       }
     });
     s.on('disconnect', () => {
@@ -231,25 +247,71 @@ export function useMultiplayerBingo() {
     setError(null);
     pendingJoinRef.current = { nickname: nick, token };
     if (socketRef.current.connected) {
-      socketRef.current.emit('join', { nickname: nick, token });
+      socketRef.current.emit(
+        'join',
+        { nickname: nick, token, requestId: makeRequestId('join') },
+        (ack?: CommandAck) => {
+          if (!ack?.ok) {
+            setError(toAckMessage(ack));
+            pendingJoinRef.current = null;
+          }
+        },
+      );
     }
   };
 
   const markCell = (cardIndex: number, row: number, col: number) => {
     if (!socketRef.current || phase !== 'ACTIVE' || !cards.length) return;
-    socketRef.current.emit('markCell', { cardIndex, row, col });
+    socketRef.current.emit(
+      'markCell',
+      { cardIndex, row, col, requestId: makeRequestId('markCell') },
+      (ack?: CommandAck) => {
+        const code = ack?.code;
+        if (!ack?.ok && (code === 'RATE_LIMIT' || code === 'NOT_JOINED')) {
+          setError(toAckMessage(ack));
+        }
+      },
+    );
   };
 
   const claimBingo = () => {
-    socketRef.current?.emit('claimBingo');
+    socketRef.current?.emit(
+      'claimBingo',
+      { requestId: makeRequestId('claimBingo') },
+      (ack?: CommandAck) => {
+        if (!ack?.ok) {
+          setError(toAckMessage(ack));
+        } else {
+          setError(null);
+        }
+      },
+    );
   };
 
   const reserveSlots = (slots: number[]) => {
-    socketRef.current?.emit('reserveCards', { slots });
+    socketRef.current?.emit(
+      'reserveCards',
+      { slots, requestId: makeRequestId('reserveCards') },
+      (ack?: CommandAck) => {
+        if (!ack?.ok) {
+          setError(toAckMessage(ack));
+        } else {
+          setError(null);
+        }
+      },
+    );
   };
 
   const releaseSlots = (slots: number[]) => {
-    socketRef.current?.emit('releaseCards', { slots });
+    socketRef.current?.emit(
+      'releaseCards',
+      { slots, requestId: makeRequestId('releaseCards') },
+      (ack?: CommandAck) => {
+        if (!ack?.ok) {
+          setError(toAckMessage(ack));
+        }
+      },
+    );
   };
 
   const clearError = () => setError(null);

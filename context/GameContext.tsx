@@ -157,129 +157,31 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'BEGIN_WAIT':
     case 'BEGIN_DRAW': {
-      let nextSelected = state.selectedCardIndices;
-      let nextPlayerCards = state.playerCards;
-      if (nextSelected.length !== 2 || nextPlayerCards.length !== 2) {
-        nextSelected = state.allCards.length >= 2 ? [0, 1] : [];
-        nextPlayerCards = nextSelected.map((idx) => state.allCards[idx]);
-      }
-      if (nextSelected.length !== 2 || nextPlayerCards.length !== 2) return state;
-
-      const chargeBet = state.mode === 'welcome' ? state.betAmount : 0;
-      const baseState: GameState = {
+      // Multiplayer is server-authoritative; this action only controls UI mode.
+      return {
         ...state,
-        selectedCardIndices: nextSelected,
-        playerCards: toResetPlayerCards({ ...state, playerCards: nextPlayerCards }),
         mode: 'game',
-        winStatus: 'none',
-        calledNumbers: new Set<number>(),
-        calledNumbersList: [],
-        currentCall: null,
-        matchedCount: 0,
-        balance: state.balance - chargeBet,
       };
-
-      return action.type === 'BEGIN_DRAW'
-        ? { ...baseState, gameActive: true }
-        : { ...baseState, gameActive: false };
     }
     case 'START_CALLS': {
-      if (state.mode !== 'game') return state;
-      return { ...state, gameActive: true };
+      // Multiplayer is server-authoritative; phase sync controls gameActive.
+      return state;
     }
     case 'DRAW_NUMBER': {
-      if (!state.gameActive || state.calledNumbers.size >= 5) return state;
-
-      let number = Math.floor(Math.random() * 75) + 1;
-      while (state.calledNumbers.has(number)) {
-        number = Math.floor(Math.random() * 75) + 1;
-      }
-
-      const nextCalledNumbers = new Set(state.calledNumbers);
-      nextCalledNumbers.add(number);
-      const nextCalledNumbersList = [...state.calledNumbersList, number];
-
-      return {
-        ...state,
-        currentCall: number,
-        calledNumbers: nextCalledNumbers,
-        calledNumbersList: nextCalledNumbersList,
-      };
+      // Deprecated for multiplayer mode.
+      return state;
     }
     case 'MARK_CELL': {
-      if (!state.gameActive || state.winStatus !== 'none') return state;
-
-      const { cardIndex, row, col } = action.payload;
-      const card = state.playerCards[cardIndex];
-      if (!card) return state;
-      const cell = card[row]?.[col];
-      if (!cell) return state;
-
-      if (cell.marked || cell.value === 0) return state;
-      if (!state.calledNumbers.has(cell.value)) return state;
-
-      const nextPlayerCards = state.playerCards.map((sourceCard, sourceCardIndex) =>
-        sourceCardIndex === cardIndex
-          ? sourceCard.map((sourceRow, sourceRowIndex) =>
-              sourceRow.map((sourceCell, sourceColIndex) =>
-                sourceRowIndex === row && sourceColIndex === col
-                  ? { ...sourceCell, marked: true }
-                  : sourceCell,
-              ),
-            )
-          : sourceCard,
-      );
-
-      const matchedCount = countMarkedWithoutFree(nextPlayerCards);
-
-      return {
-        ...state,
-        playerCards: nextPlayerCards,
-        matchedCount,
-      };
+      // Deprecated for multiplayer mode.
+      return state;
     }
     case 'FORCE_WIN': {
-      if (state.winStatus !== 'none') return state;
-      const cards = state.playerCards.length ? state.playerCards : toResetPlayerCards(state);
-      const firstCard = cards[0];
-      if (!firstCard) return state;
-
-      // Mark first row for a guaranteed win
-      const forcedCard = cards.map((card, idx) =>
-        idx === 0
-          ? card.map((row, rIdx) =>
-              row.map((cell) => (rIdx === 0 ? { ...cell, marked: true } : cell)),
-            )
-          : card,
-      );
-
-      const matchedCount = countMarkedWithoutFree(forcedCard);
-      const winAmount = state.betAmount * 2;
-      const result = makeResult('win', state.betAmount, winAmount, matchedCount);
-
-      return {
-        ...state,
-        playerCards: forcedCard,
-        gameActive: false,
-        winStatus: 'win',
-        winAmount,
-        matchedCount,
-        balance: state.balance + winAmount,
-        results: [result, ...state.results].slice(0, 25),
-      };
+      // Deprecated for multiplayer mode.
+      return state;
     }
     case 'GAME_LOSS': {
-      if (state.winStatus !== 'none') return state;
-      const matchedCount = countMarkedWithoutFree(state.playerCards);
-      const result = makeResult('loss', state.betAmount, 0, matchedCount);
-
-      return {
-        ...state,
-        gameActive: false,
-        winStatus: 'loss',
-        matchedCount,
-        results: [result, ...state.results].slice(0, 25),
-      };
+      // Deprecated for multiplayer mode.
+      return state;
     }
     case 'SHOW_RESULT': {
       return { ...state, mode: 'result', gameActive: false };

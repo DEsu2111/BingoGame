@@ -14,7 +14,7 @@ export default function SelectCards() {
 
   const handleBegin = () => {
     if (!canBegin) return;
-    dispatch({ type: 'BEGIN_DRAW' });
+    dispatch({ type: 'VIEW_GAME' });
   };
 
   return (

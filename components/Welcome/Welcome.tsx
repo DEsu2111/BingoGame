@@ -59,7 +59,7 @@ export default function Welcome(props: WelcomeProps) {
     }
     dispatch({ type: 'SET_JOINED', payload: true });
     dispatch({ type: 'SET_BET', payload: betPayload });
-    dispatch({ type: phase === 'ACTIVE' ? 'BEGIN_DRAW' : 'BEGIN_WAIT' });
+    dispatch({ type: 'VIEW_GAME' });
     setReadyToStart(true);
   };
 

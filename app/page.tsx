@@ -112,6 +112,7 @@ export default function Page() {
 
   // Sync UI mode with server phase
   useEffect(() => {
+    dispatch({ type: 'SET_JOINED', payload: cards.length === 2 });
     if (error && error.toLowerCase().includes('reserved')) {
       if (state.hasJoinedRound) {
         dispatch({ type: 'SET_JOINED', payload: false });
@@ -128,13 +129,7 @@ export default function Page() {
       return;
     }
     if (phase === 'ACTIVE') {
-      if (state.hasJoinedRound) {
-        if (state.mode !== 'game') {
-          dispatch({ type: 'BEGIN_DRAW' });
-        } else if (!state.gameActive) {
-          dispatch({ type: 'START_CALLS' });
-        }
-      } else if (state.mode !== 'game') {
+      if (state.mode !== 'game') {
         dispatch({ type: 'VIEW_GAME' });
       }
       return;
@@ -143,7 +138,7 @@ export default function Page() {
     if (phase === 'COUNTDOWN' && !state.hasJoinedRound && state.mode !== 'welcome' && state.mode !== 'result') {
       dispatch({ type: 'PLAY_AGAIN' });
     }
-  }, [error, phase, state.mode, state.hasJoinedRound, state.gameActive, dispatch, lastWinner]);
+  }, [cards.length, error, phase, state.mode, state.hasJoinedRound, dispatch, lastWinner]);
 
   // Server is source of truth for round/call state.
   useEffect(() => {
