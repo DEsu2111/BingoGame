@@ -7,7 +7,7 @@ services:
     startCommand: npm run start
     envVars:
       - key: NEXT_PUBLIC_SOCKET_URL
-        value: https://bingogame-2.onrender.com
+        value: https://bingo-backend-k7j7.onrender.com
 
   - type: web
     name: bingo-backend
@@ -18,4 +18,4 @@ services:
     startCommand: npm run start
     envVars:
       - key: CLIENT_ORIGIN
-        value: https://bingogame-1-ewme.onrender.com
+        value: https://bingo-frontend-22uh.onrender.com
