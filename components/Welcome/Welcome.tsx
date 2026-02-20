@@ -89,14 +89,14 @@ export default function Welcome(props: WelcomeProps) {
   }, [phase, state.hasJoinedRound]);
 
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#050712] text-slate-100 antialiased overflow-hidden small-scroll">
+    <main className="relative min-h-[100dvh] w-full flex flex-col bg-[#050712] text-slate-100 antialiased overflow-y-auto overflow-x-hidden small-scroll pb-safe-bottom">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-[90px]" />
         <div className="absolute -right-10 bottom-0 h-72 w-72 rounded-full bg-pink-500/15 blur-[120px]" />
       </div>
 
-      <div className="welcome-shell welcome-scale relative z-10 flex h-full w-full max-w-xl flex-col gap-5 px-4 py-5 mx-auto">
+      <div className="welcome-shell welcome-scale relative z-10 flex min-h-[100dvh] w-full max-w-xl flex-col gap-4 px-4 py-3 mx-auto">
         {/* Countdown banner */}
         <div className="welcome-countdown flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 shadow-lg">
           <span className="text-[11px] uppercase tracking-[0.2em] font-black text-rose-200">Next Round</span>
@@ -168,7 +168,7 @@ export default function Welcome(props: WelcomeProps) {
         </section>
 
         {/* Betting interface */}
-        <section className="bg-white/5 border border-white/10 rounded-4xl p-4 space-y-3 backdrop-blur-xl shadow-2xl bet-input-wrapper bet-input-compact">
+        <section className="bg-white/5 border border-white/10 rounded-4xl p-4 space-y-3 backdrop-blur-xl shadow-2xl bet-input-wrapper bet-input-compact shrink-0">
           <div className="flex justify-between items-center">
             <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Enter Bet</label>
             <span className="text-[10px] text-emerald-400 font-bold">Payout: 2x</span>
@@ -219,7 +219,7 @@ export default function Welcome(props: WelcomeProps) {
         </section>
 
         {/* Card selection on welcome */}
-        <section className="bg-white/5 border border-white/10 rounded-3xl p-3 space-y-3 backdrop-blur-xl shadow-2xl">
+        <section className="bg-white/5 border border-white/10 rounded-3xl p-3 space-y-3 backdrop-blur-xl shadow-2xl shrink-0">
           <div className="flex items-center justify-between">
             <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-300">Select Cards</p>
             <p className="text-[11px] font-black text-emerald-300">
@@ -275,11 +275,78 @@ export default function Welcome(props: WelcomeProps) {
       </div>
 
       <style jsx global>{`
-        @media (max-width: 380px), (max-height: 640px) {
-          .small-scroll {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+        .small-scroll {
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-y: contain;
+        }
+        @media (max-width: 420px), (max-height: 760px) {
+          .welcome-shell {
+            gap: 8px;
+            padding-top: 4px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            min-height: 100dvh;
           }
+          .welcome-countdown {
+            padding: 6px 10px;
+          }
+          .welcome-countdown span:first-child {
+            font-size: 9px;
+          }
+          .welcome-countdown span:last-child {
+            font-size: 18px;
+          }
+          .welcome-header {
+            gap: 8px;
+          }
+          .welcome-badge {
+            padding: 6px 8px;
+          }
+          .welcome-balance {
+            min-width: 132px;
+            padding: 6px 8px;
+          }
+          .welcome-wallet {
+            gap: 6px;
+          }
+          .welcome-wallet .wallet-input,
+          .welcome-wallet .action-btn {
+            height: 36px;
+          }
+          .welcome-wallet .wallet-input {
+            font-size: 12px;
+          }
+          .welcome-wallet .action-btn {
+            font-size: 10px;
+          }
+          .welcome-hero .hero-title,
+          .hero-welcome-compact .hero-title {
+            font-size: 22px;
+          }
+          .welcome-hero .hero-sub,
+          .hero-welcome-compact .hero-sub {
+            font-size: 11px;
+          }
+          .bet-input-compact {
+            padding: 10px;
+            gap: 8px;
+          }
+          .bet-input-compact .bet-input {
+            height: 40px;
+            font-size: 15px;
+          }
+          .bet-input-compact .quick-chip {
+            min-width: 58px;
+            height: 30px;
+            font-size: 10px;
+          }
+          .join-btn {
+            height: 42px;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+          }
+        }
+        @media (max-width: 380px), (max-height: 640px) {
           .welcome-scale {
             transform: none;
           }
