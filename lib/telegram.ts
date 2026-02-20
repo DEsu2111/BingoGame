@@ -11,9 +11,17 @@ export function verifyTelegramInitData(initData: string, botToken: string) {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
 
-  const secretKey = crypto.createHash('sha256').update(botToken).digest();
-  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  // Telegram WebApp verification:
+  // secret_key = HMAC_SHA256("WebAppData", bot_token)
+  // expected_hash = HMAC_SHA256(secret_key, data_check_string)
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const expectedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-  if (hmac !== hash) return { ok: false, error: 'Invalid hash' };
+  const expected = Buffer.from(expectedHash, 'hex');
+  const actual = Buffer.from(hash, 'hex');
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+    return { ok: false, error: 'Invalid hash' };
+  }
+
   return { ok: true, data: Object.fromEntries(params.entries()) };
 }
