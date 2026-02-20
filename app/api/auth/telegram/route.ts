@@ -5,6 +5,7 @@ import { SignJWT } from 'jose';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 function getJwtSecretKey() {
   if (!JWT_SECRET) throw new Error('Missing JWT_SECRET');
@@ -16,7 +17,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const initData: string = body?.initData || '';
     if (!initData) return NextResponse.json({ error: 'initData required' }, { status: 400 });
-    if (!TELEGRAM_BOT_TOKEN) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    if (!TELEGRAM_BOT_TOKEN || !JWT_SECRET || !DATABASE_URL) {
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
 
     const verification = verifyTelegramInitData(initData, TELEGRAM_BOT_TOKEN);
     if (!verification.ok) return NextResponse.json({ error: verification.error }, { status: 401 });
@@ -75,6 +78,11 @@ export async function POST(req: Request) {
       isFirstTime: !user.nickname,
     });
   } catch (err) {
+    console.error('Telegram auth route failed:', err);
+    const message = err instanceof Error ? err.message : 'Server error';
+    if (message.includes('P1001') || message.toLowerCase().includes('database')) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
