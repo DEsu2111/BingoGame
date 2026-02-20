@@ -143,6 +143,18 @@ export default function Page() {
     }
   }, [error, phase, state.mode, state.hasJoinedRound, state.gameActive, dispatch, lastWinner]);
 
+  // Server is source of truth for round/call state.
+  useEffect(() => {
+    dispatch({
+      type: 'SYNC_SERVER_ROUND',
+      payload: {
+        phase,
+        calledNumbers: called,
+        currentCall: lastNumber,
+      },
+    });
+  }, [dispatch, phase, called, lastNumber]);
+
   if (!nickname) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white px-4">
@@ -316,4 +328,3 @@ export default function Page() {
     />
   );
 }
-

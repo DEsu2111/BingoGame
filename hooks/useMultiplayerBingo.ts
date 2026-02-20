@@ -69,6 +69,8 @@ export function useMultiplayerBingo() {
       setPhase('COUNTDOWN');
       setCountdown(timeLeft);
       if (timeLeft >= 59) {
+        setCalled([]);
+        setLastNumber(null);
         setTakenSlots([]);
         setLastWinner(null);
       }

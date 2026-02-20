@@ -41,6 +41,14 @@ export type GameAction =
   | { type: 'HYDRATE'; payload: { balance: number; results: GameResult[] } }
   | { type: 'SET_CARDS'; payload: BingoCard[] }
   | { type: 'SET_JOINED'; payload: boolean }
+  | {
+      type: 'SYNC_SERVER_ROUND';
+      payload: {
+        phase: 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
+        calledNumbers: number[];
+        currentCall: number | null;
+      };
+    }
   | { type: 'DEPOSIT'; payload: number }
   | { type: 'WITHDRAW'; payload: number }
   | { type: 'SET_BET'; payload: number }

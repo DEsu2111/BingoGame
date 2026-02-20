@@ -4,16 +4,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { GameAction, GameResult, GameState } from '@/types/game';
 import { generateCards } from '@/lib/cardGenerator';
-import { checkWin } from '@/lib/winChecker';
-import { playWinSound } from '@/lib/sound';
 
 const BALANCE_STORAGE_KEY = 'bingo_balance';
 const RESULTS_STORAGE_KEY = 'bingo_results';
 
 const DEFAULT_BALANCE = 10;
 const DEFAULT_BET = 20;
-const DRAW_MS = 5000;
-const RESULT_DELAY_MS = 6000;
 
 const createInitialState = (initialBalance: number, initialResults: GameResult[]): GameState => ({
   mode: 'welcome',
@@ -89,6 +85,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'SET_JOINED': {
       return { ...state, hasJoinedRound: action.payload };
+    }
+    case 'SYNC_SERVER_ROUND': {
+      const calledNumbers = Array.isArray(action.payload.calledNumbers) ? action.payload.calledNumbers : [];
+      const nextCalledSet = new Set(calledNumbers);
+      return {
+        ...state,
+        calledNumbers: nextCalledSet,
+        calledNumbersList: calledNumbers,
+        currentCall: action.payload.currentCall,
+        gameActive: action.payload.phase === 'ACTIVE',
+      };
     }
     case 'DEPOSIT': {
       if (action.payload <= 0) return state;
@@ -224,24 +231,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       );
 
       const matchedCount = countMarkedWithoutFree(nextPlayerCards);
-      const didWin = nextPlayerCards.some((playerCard) => checkWin(playerCard));
-
-      if (didWin) {
-        const winAmount = state.betAmount * 2;
-        const result = makeResult('win', state.betAmount, winAmount, matchedCount);
-        playWinSound();
-
-        return {
-          ...state,
-          playerCards: nextPlayerCards,
-          gameActive: false,
-          winStatus: 'win',
-          winAmount,
-          matchedCount,
-          balance: state.balance + winAmount,
-          results: [result, ...state.results].slice(0, 25),
-        };
-      }
 
       return {
         ...state,
@@ -387,35 +376,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHydrated(true);
   }, []);
-
-  useEffect(() => {
-    if (!(state.mode === 'game' && state.gameActive && state.winStatus === 'none')) {
-      return undefined;
-    }
-
-    const intervalId = setInterval(() => {
-      dispatch({ type: 'DRAW_NUMBER' });
-    }, DRAW_MS);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [state.mode, state.gameActive, state.winStatus]);
-
-  useEffect(() => {
-    if (state.mode !== 'game' || !state.gameActive || state.winStatus !== 'none') return;
-    if (state.calledNumbers.size >= 5) {
-      dispatch({ type: 'GAME_LOSS' });
-    }
-  }, [state.mode, state.gameActive, state.winStatus, state.calledNumbers.size]);
-
-  useEffect(() => {
-    if (state.winStatus === 'none' || state.mode !== 'game') return;
-    const id = setTimeout(() => {
-      dispatch({ type: 'SHOW_RESULT' });
-    }, RESULT_DELAY_MS);
-    return () => clearTimeout(id);
-  }, [state.winStatus, state.mode]);
 
   return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>;
 }
