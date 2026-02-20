@@ -14,9 +14,9 @@ export class GameManager {
     this.countdownSeconds = countdownSeconds;
     this.callIntervalMs = callIntervalMs;
 
-    this.players = new Map(); // socketId -> { nickname, telegramUserId, card, marked:Set<string>, reservedSlots:number[] }
-    this.usedCards = new Set(); // unique card signatures this round
+    this.players = new Map(); // socketId -> { nickname, telegramUserId, cards, markedByCard:Set<string>[], reservedSlots:number[] }
     this.reservedSlots = new Set(); // shared slot ids (1..30) reserved this round
+    this.cardPool = this.createCardPool(30); // fixed card pool per round
     this.calledNumbers = new Set();
     this.phase = PHASES.COUNTDOWN;
     this.countdown = countdownSeconds;
@@ -33,8 +33,13 @@ export class GameManager {
     this.phase = PHASES.COUNTDOWN;
     this.countdown = this.countdownSeconds;
     this.calledNumbers.clear();
-    this.usedCards.clear();
+    this.cardPool = this.createCardPool(30);
     this.reservedSlots.clear();
+    for (const [socketId, player] of this.players.entries()) {
+      this.clearPlayerCards(player);
+      this.io.to(socketId).emit('cardsAssigned', { cards: [] });
+    }
+    this.io.emit('cardsTaken', { slots: [] });
     this.io.emit('countdown', { timeLeft: this.countdown });
 
     if (this.countdownTimer) {
@@ -118,13 +123,24 @@ export class GameManager {
       }
     }
 
-    const card = this.generateUniqueCard();
-    const marked = new Set(['2-2']); // free
-    this.players.set(socket.id, { nickname: safeNickname, telegramUserId, card, marked, reservedSlots: [] });
+    const existing = this.players.get(socket.id);
+    if (existing) {
+      existing.nickname = safeNickname;
+      existing.telegramUserId = telegramUserId;
+    } else {
+      this.players.set(socket.id, {
+        nickname: safeNickname,
+        telegramUserId,
+        cards: [],
+        markedByCard: [],
+        reservedSlots: [],
+      });
+    }
+    const player = this.players.get(socket.id);
 
     socket.emit('joined', {
       playerId: socket.id,
-      card,
+      cards: player?.cards ?? [],
       currentState: {
         phase: this.phase,
         countdown: this.phase === PHASES.COUNTDOWN ? this.countdown : 0,
@@ -184,6 +200,8 @@ export class GameManager {
       this.reservedSlots.add(n);
       player.reservedSlots.push(n);
     }
+    this.assignCardsForPlayer(player, requested);
+    socket.emit('cardsAssigned', { cards: player.cards });
     this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
   }
 
@@ -203,6 +221,8 @@ export class GameManager {
       return true;
     });
     if (changed) {
+      this.clearPlayerCards(player);
+      socket.emit('cardsAssigned', { cards: [] });
       this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
     }
   }
@@ -218,50 +238,106 @@ export class GameManager {
     }
   }
 
-  handleMark(socket, { row, col }) {
+  handleMark(socket, { cardIndex, row, col }) {
     const player = this.players.get(socket.id);
     if (!player) return;
 
     if (this.phase !== PHASES.ACTIVE) return;
+    if (!Number.isInteger(cardIndex) || !Number.isInteger(row) || !Number.isInteger(col)) return;
+    if (cardIndex < 0 || cardIndex > 1) return;
+    if (row < 0 || row > 4 || col < 0 || col > 4) return;
+
+    const card = player.cards?.[cardIndex];
+    if (!card) return;
+
+    const markedSet = player.markedByCard?.[cardIndex];
+    if (!markedSet) return;
+
     const key = `${row}-${col}`;
-    if (player.marked.has(key)) return;
+    if (markedSet.has(key)) return;
 
-    const value = player.card?.[row]?.[col];
-    if (value === undefined) return;
-    if (value !== 'FREE' && !this.calledNumbers.has(value)) return;
+    const cell = card?.[row]?.[col];
+    if (!cell) return;
+    if (cell.value !== 0 && !this.calledNumbers.has(cell.value)) return;
 
-    player.marked.add(key);
-    socket.emit('markConfirmed', { row, col }); // optional ack
+    markedSet.add(key);
+    card[row][col] = { ...cell, marked: true };
+    socket.emit('markConfirmed', { cardIndex, row, col });
+
+    if (checkWin(markedSet)) {
+      this.endRoundWithWinner(player, cardIndex);
+    }
   }
 
   handleClaim(socket) {
     const player = this.players.get(socket.id);
     if (!player || this.phase !== PHASES.ACTIVE) return;
 
-    if (checkWin(player.marked)) {
-      this.phase = PHASES.ENDED;
-      clearInterval(this.callTimer);
-      const winner = { nickname: player.nickname, at: Date.now() };
-      this.lastWinners.unshift(winner);
-      this.lastWinners = this.lastWinners.slice(0, 10);
-
-      this.io.emit('gameEnd', { winnerNickname: player.nickname, winningCard: player.card });
-      setTimeout(() => this.startCountdown(), 3000);
-    } else {
-      socket.emit('error', { message: 'No valid Bingo yet.' });
+    const winningCardIndex = player.markedByCard.findIndex((markedSet) => checkWin(markedSet));
+    if (winningCardIndex >= 0) {
+      this.endRoundWithWinner(player, winningCardIndex);
+      return;
     }
+    socket.emit('error', { message: 'No valid Bingo yet.' });
   }
 
-  generateUniqueCard() {
-    let card;
-    let key;
-    let attempts = 0;
-    do {
-      card = generateCard();
-      key = cardKey(card);
-      attempts += 1;
-    } while (this.usedCards.has(key) && attempts < 200);
-    this.usedCards.add(key);
-    return card;
+  endRoundWithWinner(player, winningCardIndex) {
+    if (this.phase !== PHASES.ACTIVE) return;
+    this.phase = PHASES.ENDED;
+    clearInterval(this.callTimer);
+    const winner = { nickname: player.nickname, at: Date.now() };
+    this.lastWinners.unshift(winner);
+    this.lastWinners = this.lastWinners.slice(0, 10);
+
+    this.io.emit('gameEnd', {
+      winnerNickname: player.nickname,
+      winningCard: player.cards?.[winningCardIndex] ?? null,
+      winningCards: player.cards ?? [],
+    });
+    setTimeout(() => this.startCountdown(), 3000);
+  }
+
+  createCardPool(count) {
+    const pool = [];
+    const seen = new Set();
+    while (pool.length < count) {
+      const rawCard = generateCard();
+      const key = cardKey(rawCard);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pool.push(this.toCellCard(rawCard));
+    }
+    return pool;
+  }
+
+  toCellCard(rawCard) {
+    return rawCard.map((row, r) =>
+      row.map((value, c) => ({
+        value: value === 'FREE' ? 0 : Number(value),
+        marked: r === 2 && c === 2,
+        row: r,
+        col: c,
+      })),
+    );
+  }
+
+  cloneCellCard(card) {
+    return card.map((row) => row.map((cell) => ({ ...cell })));
+  }
+
+  assignCardsForPlayer(player, slots) {
+    const cards = slots
+      .map((slot) => this.cardPool[slot - 1])
+      .filter(Boolean)
+      .map((card) => this.cloneCellCard(card));
+
+    player.cards = cards;
+    player.markedByCard = cards.map(() => new Set(['2-2']));
+  }
+
+  clearPlayerCards(player) {
+    player.cards = [];
+    player.markedByCard = [];
+    player.reservedSlots = [];
   }
 }

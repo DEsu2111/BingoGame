@@ -12,10 +12,12 @@ import ResultPage from '@/components/Result/ResultPage';
 export default function Page() {
   const {
     join,
+    markCell,
     connected,
     nickname,
     countdown,
     phase,
+    cards,
     called,
     lastNumber,
     takenSlots,
@@ -238,7 +240,7 @@ export default function Page() {
   if (state.mode === 'game') {
     const calledSet = new Set(called);
     const firstFive = called.slice(0, 5);
-    const isParticipant = state.selectedCardIndices.length === 2 && state.playerCards.length === 2;
+    const isParticipant = cards.length === 2;
     return (
       <main className="h-screen w-screen bg-[#0b1020] text-white overflow-hidden">
         <div className="h-full w-full">
@@ -293,7 +295,12 @@ export default function Page() {
             {isParticipant ? (
               <div className="basis-[45%] max-w-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden">
                 <div className="player-cards-stack">
-                  <PlayerCards cards={state.playerCards} />
+                  <PlayerCards
+                    cards={cards}
+                    currentCall={lastNumber}
+                    canMark={phase === 'ACTIVE'}
+                    onMarkCell={markCell}
+                  />
                 </div>
               </div>
             ) : (

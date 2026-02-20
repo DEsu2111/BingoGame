@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { BingoCard } from '@/types/game';
+import type { BingoCard, Cell } from '@/types/game';
 import { checkWin } from '@/lib/winCheckerSet';
 
 type Phase = 'COUNTDOWN' | 'ACTIVE' | 'ENDED';
@@ -13,7 +13,7 @@ export function useMultiplayerBingo() {
   const [nickname, setNickname] = useState('');
   const [phase, setPhase] = useState<Phase>('COUNTDOWN');
   const [countdown, setCountdown] = useState<number>(60); // display-friendly countdown
-  const [card, setCard] = useState<BingoCard | null>(null);
+  const [cards, setCards] = useState<BingoCard[]>([]);
   const [called, setCalled] = useState<number[]>([]);
   const [lastNumber, setLastNumber] = useState<number | null>(null);
   const [marked, setMarked] = useState<Set<string>>(new Set(['2-2']));
@@ -25,8 +25,47 @@ export function useMultiplayerBingo() {
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
   const [eventCount, setEventCount] = useState<number>(0);
 
+  const normalizeCards = (incoming: unknown): BingoCard[] => {
+    if (!Array.isArray(incoming)) return [];
+    return incoming
+      .map((rawCard): BingoCard | null => {
+        if (!Array.isArray(rawCard)) return null;
+        return rawCard.map((rawRow, r) => {
+          if (!Array.isArray(rawRow)) return [];
+          return rawRow.map((rawCell, c) => {
+            if (rawCell && typeof rawCell === 'object' && 'value' in (rawCell as Record<string, unknown>)) {
+              const cell = rawCell as Cell;
+              return {
+                value: Number.isFinite(cell.value) ? Number(cell.value) : 0,
+                marked: Boolean(cell.marked),
+                row: Number.isInteger(cell.row) ? cell.row : r,
+                col: Number.isInteger(cell.col) ? cell.col : c,
+              } as Cell;
+            }
+            const value = rawCell === 'FREE' ? 0 : Number(rawCell);
+            return {
+              value: Number.isFinite(value) ? value : 0,
+              marked: r === 2 && c === 2,
+              row: r,
+              col: c,
+            } as Cell;
+          });
+        });
+      })
+      .filter((card): card is BingoCard => Array.isArray(card) && card.length === 5);
+  };
+
   // derived
-  const canClaim = useMemo(() => card && checkWin(marked), [card, marked]);
+  const canClaim = useMemo(() => {
+    if (!cards.length) return false;
+    const card0Marked = new Set<string>();
+    cards[0].forEach((row, r) => {
+      row.forEach((cell, c) => {
+        if (cell.marked) card0Marked.add(`${r}-${c}`);
+      });
+    });
+    return checkWin(card0Marked);
+  }, [cards]);
 
   useEffect(() => {
     const s = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3001', {
@@ -52,16 +91,22 @@ export function useMultiplayerBingo() {
       setEventCount((c) => c + 1);
     };
 
-    s.on('joined', ({ card, currentState }) => {
+    s.on('joined', ({ cards: assignedCards, currentState }) => {
       touchEvent();
-      setCard(card);
       setPhase(currentState.phase);
       setCountdown(currentState.countdown ?? 60);
       setCalled(currentState.calledNumbers ?? []);
       setLastNumber(currentState.calledNumbers?.slice(-1)[0] ?? null);
       setWinners(currentState.winners ?? []);
-      setMarked(new Set(['2-2']));
+      setCards(normalizeCards(assignedCards ?? []));
+      setMarked(new Set(['0-2-2']));
       setTakenSlots(currentState.takenSlots ?? []);
+    });
+
+    s.on('cardsAssigned', ({ cards: assignedCards }) => {
+      touchEvent();
+      setCards(normalizeCards(assignedCards ?? []));
+      setMarked(new Set(['0-2-2']));
     });
 
     s.on('countdown', ({ timeLeft }) => {
@@ -88,17 +133,29 @@ export function useMultiplayerBingo() {
       setCalled(calledNumbers);
     });
 
-    s.on('markConfirmed', ({ row, col }) => {
+    s.on('markConfirmed', ({ cardIndex, row, col }) => {
       touchEvent();
-      setMarked((prev) => new Set(prev).add(`${row}-${col}`));
+      const index = Number.isInteger(cardIndex) ? cardIndex : 0;
+      setMarked((prev) => new Set(prev).add(`${index}-${row}-${col}`));
+      setCards((prev) =>
+        prev.map((card, cIdx) =>
+          cIdx === index
+            ? card.map((line, rIdx) =>
+                line.map((cell, colIdx) =>
+                  rIdx === row && colIdx === col ? { ...cell, marked: true } : cell,
+                ),
+              )
+            : card,
+        ),
+      );
     });
 
-    s.on('gameEnd', ({ winnerNickname, winningCard }) => {
+    s.on('gameEnd', ({ winnerNickname, winningCards }) => {
       touchEvent();
       setPhase('ENDED');
       setLastWinner(winnerNickname ?? null);
       setWinners((w) => [{ nickname: winnerNickname, at: Date.now() }, ...w].slice(0, 10));
-      if (winningCard) setCard(winningCard);
+      if (winningCards) setCards(normalizeCards(winningCards));
     });
 
     s.on('cardsTaken', ({ slots }) => {
@@ -131,15 +188,9 @@ export function useMultiplayerBingo() {
     }
   };
 
-  const markCell = (row: number, col: number) => {
-    if (!socketRef.current || phase !== 'ACTIVE' || !card) return;
-    const cell = card[row]?.[col];
-    if (!cell) return;
-    const value = cell.value;
-    if (value !== 0 && !called.includes(value)) return;
-    socketRef.current.emit('markCell', { row, col });
-    // optimistic update
-    setMarked((prev) => new Set(prev).add(`${row}-${col}`));
+  const markCell = (cardIndex: number, row: number, col: number) => {
+    if (!socketRef.current || phase !== 'ACTIVE' || !cards.length) return;
+    socketRef.current.emit('markCell', { cardIndex, row, col });
   };
 
   const claimBingo = () => {
@@ -158,10 +209,10 @@ export function useMultiplayerBingo() {
   const logout = () => {
     pendingJoinRef.current = null;
     setNickname('');
-    setCard(null);
+    setCards([]);
     setCalled([]);
     setLastNumber(null);
-    setMarked(new Set(['2-2']));
+    setMarked(new Set(['0-2-2']));
     setWinners([]);
     setTakenSlots([]);
     setLastWinner(null);
@@ -175,7 +226,8 @@ export function useMultiplayerBingo() {
     nickname,
     phase,
     countdown,
-    card,
+    card: cards[0] ?? null,
+    cards,
     called,
     lastNumber,
     marked,

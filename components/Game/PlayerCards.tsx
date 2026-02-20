@@ -1,35 +1,29 @@
 // Renders the two selected cards stacked (top/bottom) during gameplay.
 'use client';
 
-import { useGame } from '@/context/GameContext';
 import { BingoCard } from '@/types/game';
 import MiniCard from './MiniCard';
 
 interface PlayerCardsProps {
   cards: BingoCard[];
+  currentCall: number | null;
+  canMark: boolean;
+  onMarkCell: (cardIndex: number, row: number, col: number) => void;
 }
 
-export default function PlayerCards({ cards }: PlayerCardsProps) {
-  const { state, dispatch } = useGame();
+export default function PlayerCards({ cards, currentCall, canMark, onMarkCell }: PlayerCardsProps) {
   if (!cards.length) return null;
-
-  const ordered = state.selectedCardIndices
-    .map((idx, position) => ({ idx, card: cards[position] }))
-    .filter((entry) => entry.card)
-    .sort((a, b) => a.idx - b.idx);
 
   return (
     <section className="player-cards player-cards-stack">
-      {ordered.map(({ card, idx }, position) => (
-        <div key={idx} className="card-shell card-shell--bare player-card-slot w-full">
-          <h4 className="player-card-title">Card {position + 1}</h4>
+      {cards.map((card, cardIndex) => (
+        <div key={`card-${cardIndex}`} className="card-shell card-shell--bare player-card-slot w-full">
+          <h4 className="player-card-title">Card {cardIndex + 1}</h4>
           <MiniCard
             card={card}
-            currentCall={state.currentCall}
-            disabled={!state.gameActive || state.winStatus !== 'none'}
-            onCellClick={(row, col) =>
-              dispatch({ type: 'MARK_CELL', payload: { cardIndex: cards.indexOf(card), row, col } })
-            }
+            currentCall={currentCall}
+            disabled={!canMark}
+            onCellClick={(row, col) => onMarkCell(cardIndex, row, col)}
           />
         </div>
       ))}
