@@ -13,7 +13,7 @@
  */
 'use client';
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { BingoCard } from '@/types/game';
 import FreeCell from '../ui/FreeCell';
 
@@ -28,7 +28,7 @@ interface MiniCardProps {
 
 // ─── Component ──────────────────────────────────────────
 
-export default function MiniCard({ card, currentCall, onCellClick, disabled }: MiniCardProps) {
+const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniCardProps) => {
   /**
    * Find the row/col position of the current call on this card.
    * Used to highlight the matching row and column as visual hints.
@@ -45,52 +45,63 @@ export default function MiniCard({ card, currentCall, onCellClick, disabled }: M
   }, [card, currentCall]);
 
   return (
-    <div className="bingo-card">
+    <div className="bingo-card" role="grid">
       {/* B-I-N-G-O header */}
-      <div className="bingo-head">
-        <span className="bingo-b">B</span>
-        <span className="bingo-i">I</span>
-        <span className="bingo-n">N</span>
-        <span className="bingo-g">G</span>
-        <span className="bingo-o">O</span>
+      <div className="bingo-head" role="row">
+        <span className="bingo-b" role="columnheader">B</span>
+        <span className="bingo-i" role="columnheader">I</span>
+        <span className="bingo-n" role="columnheader">N</span>
+        <span className="bingo-g" role="columnheader">G</span>
+        <span className="bingo-o" role="columnheader">O</span>
       </div>
 
       {/* 5×5 grid of cells */}
-      <div className="bingo-grid">
-        {card.map((row, r) =>
-          row.map((cell, c) => {
-            const free = cell.value === 0;        // Center cell (FREE)
-            const isCurrent = currentCall !== null && cell.value === currentCall && !cell.marked && !free;
-            const rowHint = matchCoords && matchCoords.r === r;  // Same row as current call
-            const colHint = matchCoords && matchCoords.c === c;  // Same col as current call
+      <div className="bingo-grid" role="rowgroup">
+        {card.map((row, r) => (
+          <div key={`row-${r}`} role="row" className="contents">
+            {row.map((cell, c) => {
+              const free = cell.value === 0;        // Center cell (FREE)
+              const isCurrent = currentCall !== null && cell.value === currentCall && !cell.marked && !free;
+              const rowHint = matchCoords && matchCoords.r === r;  // Same row as current call
+              const colHint = matchCoords && matchCoords.c === c;  // Same col as current call
 
-            // Build CSS class list dynamically
-            const base = [
-              'bingo-cell number-cell',
-              free && 'bingo-free',
-              cell.marked && 'bingo-marked bingo-daub',
-              isCurrent && 'bingo-current bingo-daub--pulse',
-              disabled && 'bingo-disabled',
-              rowHint && 'bingo-row-hint',
-              colHint && 'bingo-col-hint',
-            ]
-              .filter(Boolean)
-              .join(' ');
+              // Build CSS class list dynamically
+              const base = [
+                'bingo-cell number-cell',
+                free && 'bingo-free',
+                cell.marked && 'bingo-marked bingo-daub',
+                isCurrent && 'bingo-current bingo-daub--pulse',
+                disabled && 'bingo-disabled',
+                rowHint && 'bingo-row-hint',
+                colHint && 'bingo-col-hint',
+              ]
+                .filter(Boolean)
+                .join(' ');
 
-            return (
-              <button
-                key={`${r}-${c}`}
-                type="button"
-                className={base}
-                onClick={() => onCellClick(r, c)}
-                disabled={disabled || free || cell.marked}  // Can't click FREE or already-marked cells
-              >
-                {free ? <FreeCell /> : cell.value}
-              </button>
-            );
-          }),
-        )}
+              const cellLabel = free
+                ? 'Free space'
+                : `Number ${cell.value}, ${cell.marked ? 'marked' : 'not marked'}${isCurrent ? ', matches current call' : ''}`;
+
+              return (
+                <button
+                  key={`${r}-${c}`}
+                  role="gridcell"
+                  type="button"
+                  className={base}
+                  onClick={() => onCellClick(r, c)}
+                  disabled={disabled || free || cell.marked}  // Can't click FREE or already-marked cells
+                  aria-label={cellLabel}
+                  aria-pressed={cell.marked}
+                >
+                  {free ? <FreeCell /> : cell.value}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
-}
+});
+
+export default MiniCard;

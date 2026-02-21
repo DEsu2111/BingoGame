@@ -10,6 +10,8 @@
  */
 'use client';
 
+import React from 'react';
+
 // ─── Props ──────────────────────────────────────────────
 
 type HeaderProps = {
@@ -20,13 +22,16 @@ type HeaderProps = {
 
 // ─── Component ──────────────────────────────────────────
 
-export default function Header({ firstFive, countdown, lastNumber }: HeaderProps) {
+const Header = React.memo(({ firstFive, countdown, lastNumber }: HeaderProps) => {
   return (
-    <div className="flex h-[10vh] w-full items-center gap-2">
+    <div className="flex h-[10vh] w-full items-center gap-2" role="banner">
 
       {/* First 5 called numbers — helps players quickly see early calls */}
-      <div className="flex items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">First 5</span>
+      <div
+        className="flex items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700"
+        aria-label={`First five numbers: ${firstFive.join(', ') || 'none yet'}`}
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300" aria-hidden="true">First 5</span>
         <div className="flex items-center gap-1">
           {firstFive.map((n) => (
             <span
@@ -39,28 +44,30 @@ export default function Header({ firstFive, countdown, lastNumber }: HeaderProps
         </div>
       </div>
 
-      {/* Hidden countdown (reserved for future use or specific phases) */}
-      <div className="hidden items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Countdown</span>
-        <span className="h-8 min-w-8 rounded-full bg-rose-400 text-slate-900 font-black grid place-items-center shadow-inner shadow-rose-500/50">
-          {countdown}s
-        </span>
-      </div>
-
       {/* Current call — the number that was just drawn */}
-      <div className="flex items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Call</span>
+      <div
+        className="flex items-center gap-2 rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700"
+        aria-live="assertive"
+        aria-label={`Current call: ${lastNumber ?? 'none'}`}
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300" aria-hidden="true">Call</span>
         <span className="h-8 min-w-8 rounded-full bg-amber-400 text-slate-900 font-black grid place-items-center shadow-inner shadow-amber-500/50">
           {lastNumber ?? '-'}
         </span>
       </div>
 
       {/* Right-aligned countdown timer */}
-      <div className="ml-auto flex items-center rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700">
+      <div
+        className="ml-auto flex items-center rounded-xl bg-slate-800/70 px-2.5 py-1.5 border border-slate-700"
+        aria-label={`Time remaining: ${countdown} seconds`}
+        aria-live="polite"
+      >
         <span className="h-8 min-w-8 rounded-full bg-rose-400 text-slate-900 font-black grid place-items-center shadow-inner shadow-rose-500/50">
           {countdown}s
         </span>
       </div>
     </div>
   );
-}
+});
+
+export default Header;

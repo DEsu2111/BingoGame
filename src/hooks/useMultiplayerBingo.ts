@@ -32,6 +32,31 @@ type CommandAck<T = unknown> = {
   data?: T;
 };
 
+/** Full state of the game as sent by the server. */
+type GameServerState = {
+  phase: Phase;
+  countdown: number;
+  calledNumbers: number[];
+  lastNumber?: number | null;
+  winners: { nickname: string; at: number }[];
+  takenSlots: number[];
+};
+
+/** Payload for the 'stateSync' event. */
+type StateSyncPayload = {
+  currentState?: GameServerState;
+  player?: {
+    cards?: unknown;
+  };
+};
+
+/** Payload for the 'joined' event. */
+type JoinedPayload = {
+  cards?: unknown;
+  currentState?: GameServerState;
+  nickname?: string;
+};
+
 // ─── Hook ───────────────────────────────────────────────
 
 export function useMultiplayerBingo() {
@@ -188,16 +213,18 @@ export function useMultiplayerBingo() {
     // --- Game state events from server ---
 
     /** Full state sync — sent on connect and after reconnect. */
-    s.on('stateSync', ({ currentState, player }) => {
+    s.on('stateSync', ({ currentState, player }: StateSyncPayload) => {
       touchEvent();
       const phaseFromServer: Phase = currentState?.phase ?? 'COUNTDOWN';
       const calledNumbers: number[] = Array.isArray(currentState?.calledNumbers) ? currentState.calledNumbers : [];
       setPhase(phaseFromServer);
       setCountdown(phaseFromServer === 'COUNTDOWN' ? Number(currentState?.countdown ?? 60) : 0);
       setCalled(calledNumbers);
+
+      const serverLastNumber = currentState?.lastNumber;
       setLastNumber(
-        Number.isInteger(currentState?.lastNumber)
-          ? currentState.lastNumber
+        Number.isInteger(serverLastNumber)
+          ? (serverLastNumber as number)
           : calledNumbers.length
             ? calledNumbers[calledNumbers.length - 1]
             : null,
@@ -212,9 +239,15 @@ export function useMultiplayerBingo() {
     });
 
     /** Confirmation that the player successfully joined the round. */
-    s.on('joined', (payload: { cards?: unknown; currentState?: any; nickname?: string } = {}) => {
+    s.on('joined', (payload: JoinedPayload = {}) => {
       touchEvent();
-      const currentState = payload.currentState ?? {};
+      const currentState = payload.currentState || {
+        phase: 'COUNTDOWN',
+        countdown: 60,
+        calledNumbers: [],
+        winners: [],
+        takenSlots: [],
+      };
       const confirmedNickname = String(payload.nickname ?? pendingJoinRef.current?.nickname ?? '').trim();
       setPhase(currentState.phase);
       setCountdown(currentState.countdown ?? 60);

@@ -173,7 +173,7 @@ export default function Page() {
    * - First-time users: saves their nickname via the API, then joins
    * - Returning users: joins directly with their existing nickname
    */
-  const handleAuthSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAuthSubmit = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!authToken) {
       setAuthError('Auth is not ready yet. Open from Telegram bot menu button and wait 2-3 seconds.');
@@ -203,7 +203,7 @@ export default function Page() {
 
     // Returning user — join directly
     join(nickInput.trim(), authToken);
-  };
+  }, [authToken, isFirstTime, isNicknameValid, nickInput, join]);
 
   // ─── Render (mode-based routing) ──────────────────────
 

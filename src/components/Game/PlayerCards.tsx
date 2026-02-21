@@ -9,6 +9,8 @@
  */
 'use client';
 
+import React from 'react';
+
 import { BingoCard } from '@/types/game';
 import MiniCard from './MiniCard';
 
@@ -23,15 +25,20 @@ interface PlayerCardsProps {
 
 // ─── Component ──────────────────────────────────────────
 
-export default function PlayerCards({ cards, currentCall, canMark, onMarkCell }: PlayerCardsProps) {
+const PlayerCards = React.memo(({ cards, currentCall, canMark, onMarkCell }: PlayerCardsProps) => {
   if (!cards.length) return null;
 
   return (
-    <section className="player-cards player-cards-stack">
+    <section className="player-cards player-cards-stack" aria-label="Your assigned bingo cards">
       {cards.map((card, cardIndex) => (
-        <div key={`card-${cardIndex}`} className="card-shell card-shell--bare player-card-slot w-full">
+        <div
+          key={`card-${cardIndex}`}
+          className="card-shell card-shell--bare player-card-slot w-full"
+          role="region"
+          aria-label={`Bingo Card ${cardIndex + 1}`}
+        >
           {/* Card label (Card 1, Card 2) */}
-          <h4 className="player-card-title">Card {cardIndex + 1}</h4>
+          <h4 className="player-card-title" aria-hidden="true">Card {cardIndex + 1}</h4>
           <MiniCard
             card={card}
             currentCall={currentCall}
@@ -42,4 +49,6 @@ export default function PlayerCards({ cards, currentCall, canMark, onMarkCell }:
       ))}
     </section>
   );
-}
+});
+
+export default PlayerCards;
