@@ -56,42 +56,7 @@ const createInitialState = (initialBalance: number, initialResults: GameResult[]
 
 // ─── Helper Functions ───────────────────────────────────
 
-/** Reset all cell marks on player cards (keep FREE cells marked). */
-function toResetPlayerCards(state: GameState) {
-  return state.playerCards.map((card) =>
-    card.map((row) =>
-      row.map((cell) => ({
-        ...cell,
-        marked: cell.value === 0, // FREE cell stays marked
-      })),
-    ),
-  );
-}
 
-/** Count how many non-FREE cells are marked across all player cards. */
-function countMarkedWithoutFree(cards: GameState['playerCards']) {
-  return cards
-    .flat()
-    .flat()
-    .filter((cell) => cell.marked && cell.value !== 0).length;
-}
-
-/** Create a GameResult record for history tracking. */
-function makeResult(
-  type: 'win' | 'loss',
-  betAmount: number,
-  payout: number,
-  matchedCount: number,
-): GameResult {
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    type,
-    betAmount,
-    payout,
-    matchedCount,
-    at: new Date().toISOString(),
-  };
-}
 
 // ─── Reducer ────────────────────────────────────────────
 
