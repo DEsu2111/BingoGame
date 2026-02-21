@@ -45,6 +45,8 @@ next-env.d.ts
 # local DB artifacts
 prisma/*.db
 prisma/*.db-journal
+src/prisma/*.db
+src/prisma/*.db-journal
 
 # misc
 .DS_Store

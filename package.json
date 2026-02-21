@@ -9,6 +9,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "prisma": {
+    "schema": "src/prisma/schema.prisma"
+  },
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",
