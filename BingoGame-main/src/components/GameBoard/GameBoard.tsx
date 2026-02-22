@@ -49,11 +49,14 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, can
         <Header firstFive={firstFive} countdown={countdown} lastNumber={lastNumber} />
 
         {/* Main content: called numbers table + player cards (or spectator message) */}
-        <section className="game-main flex h-[90vh] w-full gap-0 overflow-hidden" aria-label="Game board and cards">
+        <section className="game-main flex flex-col md:flex-row h-[90vh] w-full gap-2 md:gap-0 overflow-hidden px-2 md:px-0 pb-2 md:pb-0" aria-label="Game board and cards">
 
           {/* Called Numbers Table — takes more space for spectators */}
           <div
-            className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${isParticipant ? 'basis-[55%] max-w-[55%]' : 'basis-[70%] max-w-[70%]'
+            className={`order-2 md:order-1 rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden flex flex-col 
+              ${isParticipant
+                ? 'basis-1/3 md:basis-[55%] flex-shrink md:max-w-[55%]'
+                : 'basis-1/2 md:basis-[70%] md:max-w-[70%]'
               }`}
             aria-label="Table of all possible bingo numbers"
           >
@@ -63,7 +66,7 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, can
           {/* Right panel: player's cards OR a "not joined" placeholder */}
           {isParticipant ? (
             <div
-              className="basis-[45%] max-w-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] flex flex-col overflow-y-auto"
+              className="order-1 md:order-2 flex-grow md:basis-[45%] md:max-w-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] flex flex-col overflow-y-auto"
               aria-label="Your bingo cards"
             >
               <div className="player-cards-stack flex-1 flex flex-col pt-2 pb-0 px-2 lg:px-4 space-y-2">
@@ -93,7 +96,7 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, can
             </div>
           ) : (
             <div
-              className="basis-[30%] max-w-[30%] flex items-center justify-center p-2"
+              className="order-1 md:order-2 flex-grow md:basis-[30%] md:max-w-[30%] flex items-center justify-center p-2"
               role="complementary"
             >
               <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-center text-xs font-semibold text-amber-100 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
