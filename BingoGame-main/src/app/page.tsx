@@ -92,6 +92,9 @@ export default function Page() {
   useEffect(() => {
     let cancelled = false;
 
+    // Unlock Web Audio context on the very first tap globally
+    soundManager.attachUnlockListeners();
+
     const syncAuthState = async () => {
       if (cancelled) return;
       const result = await login();

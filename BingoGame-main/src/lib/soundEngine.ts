@@ -15,8 +15,35 @@ export class SoundEngine {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
+    }
+
+    public unlockAudio = () => {
+        this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
+        }
+
+        // Play an imperceptible silent tone to immediately unlock iOS/Android Web Audio
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(0);
+        osc.stop(0.001);
+
+        // We only need to unlock once
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('click', this.unlockAudio);
+            window.removeEventListener('touchstart', this.unlockAudio);
+        }
+    };
+
+    public attachUnlockListeners() {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('click', this.unlockAudio);
+            window.addEventListener('touchstart', this.unlockAudio);
         }
     }
 
@@ -29,7 +56,13 @@ export class SoundEngine {
         startTimeOffset: number = 0,
         freqSlide?: number
     ) {
+        this.init();
         if (!this.ctx || !this.enabled) return;
+
+        // Automatically attempt to resume if somehow suspended
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
 
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
