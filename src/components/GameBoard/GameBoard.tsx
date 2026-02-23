@@ -16,7 +16,6 @@
 import React, { useMemo } from 'react';
 
 import type { BingoCard } from '@/types/game';
-import Header from '@/components/Header';
 import PlayerCards from '@/components/Game/PlayerCards';
 import CalledNumbersTable from '@/components/Game/CalledNumbersTable';
 
@@ -33,81 +32,52 @@ type GameBoardProps = {
 
 // ─── Component ──────────────────────────────────────────
 
-const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onMarkCell }: GameBoardProps) => {
+const GameBoard = React.memo(({ called, lastNumber, cards, phase, onMarkCell }: GameBoardProps) => {
   const calledSet = useMemo(() => new Set(called), [called]);
-  const firstFive = useMemo(() => called.slice(0, 5), [called]);
   const isParticipant = cards.length === 2;
 
   return (
-<<<<<<< ours
-    <main className="h-screen w-screen bg-[#0b1020] text-white overflow-hidden flex flex-col" role="main">
-      {/* Fixed Header */}
-      <Header firstFive={firstFive} countdown={countdown} lastNumber={lastNumber} />
-=======
-    <main className="h-dvh w-screen bg-[#0b1020] text-white overflow-hidden" role="main">
-      <div className="h-full w-full">
->>>>>>> theirs
-
-      {/* Responsive Shell: Vertical Stack on Mobile, Horizontal on Desktop */}
+    <main className="h-dvh w-screen bg-[#050812] text-white overflow-hidden" role="main">
       <section
-        className="game-main flex flex-col sm:flex-row h-[90vh] w-full gap-2 p-2 overflow-hidden"
+        className="game-main flex h-full w-full gap-1 overflow-hidden p-1"
         aria-label="Game board and cards"
       >
-        {/* Called Numbers Table */}
         <div
-          className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-2xl overflow-hidden flex-1 
-            ${isParticipant ? 'sm:basis-[55%]' : 'sm:basis-[70%]'}`}
+          className={`min-w-0 rounded-2xl border border-[#1c2b57] bg-[#0b1330] p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${
+            isParticipant ? 'basis-[56%] max-w-[56%]' : 'basis-[70%] max-w-[70%]'
+          }`}
         >
           <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
         </div>
 
-<<<<<<< ours
-        {/* Player Cards Panel */}
         {isParticipant ? (
           <div
-            className="sm:basis-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-2xl overflow-hidden flex-1"
+            className="game-right-panel min-w-0 basis-[44%] max-w-[44%] rounded-2xl border border-[#1c2b57] bg-[#0b1330] p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden"
             aria-label="Your bingo cards"
           >
-            <div className="player-cards-stack h-full">
+            <div className="game-right-topbar" aria-label="Last call and controls">
+              <div className="game-right-lastcall">
+                <span>LAST</span>
+                <span>CALL</span>
+              </div>
+              <div className="game-right-badge">{lastNumber ?? '-'}</div>
+              <button type="button" className="game-right-force" disabled aria-disabled="true">
+                Force Win
+              </button>
+            </div>
+            <div className="player-cards-stack h-[calc(100%-4.5rem)]">
               <PlayerCards
                 cards={cards}
                 currentCall={lastNumber}
                 canMark={phase === 'ACTIVE'}
                 onMarkCell={onMarkCell}
               />
-=======
-        {/* Main content: called numbers table + player cards (or spectator message) */}
-        <section className="game-main flex h-[calc(100dvh-10vh)] w-full gap-1 overflow-hidden px-1 pb-1" aria-label="Game board and cards">
-
-          {/* Called Numbers Table — takes more space for spectators */}
-          <div
-            className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${isParticipant ? 'basis-[54%] max-w-[54%]' : 'basis-[70%] max-w-[70%]'
-              }`}
-            aria-label="Table of all possible bingo numbers"
-          >
-            <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
-          </div>
-
-          {/* Right panel: player's cards OR a "not joined" placeholder */}
-          {isParticipant ? (
-            <div
-              className="basis-[46%] max-w-[46%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden"
-              aria-label="Your bingo cards"
-            >
-              <div className="player-cards-stack">
-                <PlayerCards
-                  cards={cards}
-                  currentCall={lastNumber}
-                  canMark={phase === 'ACTIVE'}  // Only allow marking during active play
-                  onMarkCell={onMarkCell}
-                />
-              </div>
->>>>>>> theirs
             </div>
+            <div className="game-right-floating-call" aria-hidden="true">{lastNumber ?? '-'}</div>
           </div>
         ) : (
           <div
-            className="sm:basis-[30%] flex items-center justify-center p-4"
+            className="min-w-0 basis-[30%] flex items-center justify-center p-4"
             role="complementary"
           >
             <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-6 text-center text-sm font-semibold text-amber-100 shadow-xl">

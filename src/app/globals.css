@@ -1316,3 +1316,195 @@ button:focus-visible {
     font-size: 10px;
   }
 }
+
+/* In-game phone layout tuned to match reference screenshot */
+.called-table-shell {
+  background: linear-gradient(180deg, #0c1432 0%, #0a1230 100%);
+  border: 1px solid rgba(76, 104, 180, 0.35);
+}
+
+.called-table-head {
+  background: linear-gradient(180deg, rgba(20, 28, 58, 0.95) 0%, rgba(15, 23, 48, 0.9) 100%);
+}
+
+.called-table-grid {
+  background: linear-gradient(180deg, #0b1434 0%, #0a1231 100%);
+}
+
+.cell {
+  border-radius: 10px;
+  border: 1px solid rgba(107, 124, 173, 0.2);
+  background: rgba(18, 30, 67, 0.85);
+  color: #9aa6c4;
+  box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.cell-uncalled {
+  background: rgba(18, 30, 67, 0.85);
+  color: #9aa6c4;
+  border: 1px solid rgba(107, 124, 173, 0.2);
+}
+
+.cell-called {
+  background: linear-gradient(180deg, #ffcd32 0%, #ffb000 100%);
+  border: 1px solid #f3cc56;
+  color: #1a233c;
+  box-shadow: 0 0 14px rgba(255, 193, 7, 0.65), inset 0 -4px 10px rgba(0, 0, 0, 0.2);
+  transform: none;
+}
+
+.cell-last {
+  box-shadow: 0 0 18px rgba(255, 193, 7, 0.75);
+  border-color: #ffe58f;
+}
+
+.game-right-panel {
+  position: relative;
+}
+
+.game-right-topbar {
+  height: 3.75rem;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(76, 104, 180, 0.35);
+  background: linear-gradient(180deg, rgba(20, 28, 58, 0.95) 0%, rgba(15, 23, 48, 0.9) 100%);
+}
+
+.game-right-lastcall {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  color: #d3d9ea;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.game-right-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 34px;
+  color: #1a233c;
+  background: radial-gradient(circle at 35% 30%, #fff8d8 10%, #f7db70 42%, #e9c847 100%);
+  box-shadow: 0 0 16px rgba(255, 224, 109, 0.6);
+}
+
+.game-right-force {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 11px;
+  font-weight: 800;
+  font-size: 20px;
+  color: #082b20;
+  background: linear-gradient(180deg, #32ddb8 0%, #1ec8a0 100%);
+  opacity: 1;
+}
+
+.player-cards-stack.game-phone-cards {
+  height: calc(100% - 4.5rem);
+  gap: 8px;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.game-phone-card-slot {
+  min-height: 0;
+  height: calc(50% - 4px);
+  background: #f7fafc;
+  border-radius: 10px;
+  padding: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.35);
+}
+
+.game-phone-cards .bingo-card {
+  max-width: 100%;
+  width: 100%;
+  background: #f2f4f8;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: none;
+}
+
+.game-phone-cards .bingo-head {
+  margin-bottom: 2px;
+}
+
+.game-phone-cards .bingo-cell {
+  width: 100%;
+  height: 38px;
+  font-size: 20px;
+  font-weight: 900;
+  border: 1px solid #4a5568;
+  color: #111827;
+  background: #f1f1f1;
+}
+
+.game-phone-cards .bingo-marked {
+  background: #c6d8e8;
+  border-color: #7db0df;
+  color: #0f172a;
+}
+
+.game-phone-cards .bingo-marked::after {
+  content: none;
+}
+
+.game-phone-cards .bingo-current {
+  outline: 3px solid #f4d25c;
+  outline-offset: -3px;
+}
+
+.game-right-floating-call {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 32px;
+  color: #1a233c;
+  background: radial-gradient(circle at 35% 30%, #fff8d8 10%, #f7db70 42%, #e9c847 100%);
+  box-shadow: 0 0 16px rgba(255, 224, 109, 0.65);
+}
+
+@media (max-width: 480px) {
+  .game-main {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .game-right-badge {
+    width: 50px;
+    height: 50px;
+    font-size: 26px;
+  }
+
+  .game-right-force {
+    font-size: 13px;
+    padding: 8px 9px;
+  }
+
+  .game-phone-cards .bingo-cell {
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .game-right-floating-call {
+    width: 46px;
+    height: 46px;
+    font-size: 14px;
+  }
+}

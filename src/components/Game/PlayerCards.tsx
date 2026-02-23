@@ -29,16 +29,14 @@ const PlayerCards = React.memo(({ cards, currentCall, canMark, onMarkCell }: Pla
   if (!cards.length) return null;
 
   return (
-    <section className="player-cards player-cards-stack" aria-label="Your assigned bingo cards">
+    <section className="player-cards player-cards-stack game-phone-cards" aria-label="Your assigned bingo cards">
       {cards.map((card, cardIndex) => (
         <div
           key={`card-${cardIndex}`}
-          className="card-shell card-shell--bare player-card-slot w-full"
+          className="player-card-slot game-phone-card-slot w-full"
           role="region"
           aria-label={`Bingo Card ${cardIndex + 1}`}
         >
-          {/* Card label (Card 1, Card 2) */}
-          <h4 className="player-card-title" aria-hidden="true">Card {cardIndex + 1}</h4>
           <MiniCard
             card={card}
             currentCall={currentCall}
