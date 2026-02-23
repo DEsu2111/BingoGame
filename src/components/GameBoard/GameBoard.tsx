@@ -34,57 +34,55 @@ type GameBoardProps = {
 // ─── Component ──────────────────────────────────────────
 
 const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onMarkCell }: GameBoardProps) => {
-  // Derive useful values from the called numbers
   const calledSet = useMemo(() => new Set(called), [called]);
   const firstFive = useMemo(() => called.slice(0, 5), [called]);
-  const isParticipant = cards.length === 2;   // Player joined with 2 cards
+  const isParticipant = cards.length === 2;
 
   return (
-    <main className="h-screen w-screen bg-[#0b1020] text-white overflow-hidden" role="main">
-      <div className="h-full w-full">
+    <main className="h-screen w-screen bg-[#0b1020] text-white overflow-hidden flex flex-col" role="main">
+      {/* Fixed Header */}
+      <Header firstFive={firstFive} countdown={countdown} lastNumber={lastNumber} />
 
-        {/* Top strip: first 5 numbers, current call, countdown */}
-        <Header firstFive={firstFive} countdown={countdown} lastNumber={lastNumber} />
+      {/* Responsive Shell: Vertical Stack on Mobile, Horizontal on Desktop */}
+      <section
+        className="game-main flex flex-col sm:flex-row h-[90vh] w-full gap-2 p-2 overflow-hidden"
+        aria-label="Game board and cards"
+      >
+        {/* Called Numbers Table */}
+        <div
+          className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-2xl overflow-hidden flex-1 
+            ${isParticipant ? 'sm:basis-[55%]' : 'sm:basis-[70%]'}`}
+        >
+          <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
+        </div>
 
-        {/* Main content: called numbers table + player cards (or spectator message) */}
-        <section className="game-main flex h-[90vh] w-full gap-0 overflow-hidden" aria-label="Game board and cards">
-
-          {/* Called Numbers Table — takes more space for spectators */}
+        {/* Player Cards Panel */}
+        {isParticipant ? (
           <div
-            className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${isParticipant ? 'basis-[55%] max-w-[55%]' : 'basis-[70%] max-w-[70%]'
-              }`}
-            aria-label="Table of all possible bingo numbers"
+            className="sm:basis-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-2xl overflow-hidden flex-1"
+            aria-label="Your bingo cards"
           >
-            <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
+            <div className="player-cards-stack h-full">
+              <PlayerCards
+                cards={cards}
+                currentCall={lastNumber}
+                canMark={phase === 'ACTIVE'}
+                onMarkCell={onMarkCell}
+              />
+            </div>
           </div>
-
-          {/* Right panel: player's cards OR a "not joined" placeholder */}
-          {isParticipant ? (
-            <div
-              className="basis-[45%] max-w-[45%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden"
-              aria-label="Your bingo cards"
-            >
-              <div className="player-cards-stack">
-                <PlayerCards
-                  cards={cards}
-                  currentCall={lastNumber}
-                  canMark={phase === 'ACTIVE'}  // Only allow marking during active play
-                  onMarkCell={onMarkCell}
-                />
-              </div>
+        ) : (
+          <div
+            className="sm:basis-[30%] flex items-center justify-center p-4"
+            role="complementary"
+          >
+            <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-6 text-center text-sm font-semibold text-amber-100 shadow-xl">
+              <span className="block text-2xl mb-2">👀</span>
+              Spectating... <br /> Wait for the next round to join.
             </div>
-          ) : (
-            <div
-              className="basis-[30%] max-w-[30%] flex items-center justify-center p-2"
-              role="complementary"
-            >
-              <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-center text-xs font-semibold text-amber-100 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-                You haven&apos;t selected cards yet.
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
+          </div>
+        )}
+      </section>
     </main>
   );
 });

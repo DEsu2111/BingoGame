@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { BingoCard, Cell } from '@/types/game';
 import { checkWin } from '@/lib/winCheckerSet';
+import { triggerHaptic } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -301,6 +302,7 @@ export function useMultiplayerBingo() {
     /** Server confirmed a cell was marked on the player's card. */
     s.on('markConfirmed', ({ cardIndex, row, col }) => {
       touchEvent();
+      triggerHaptic('light');
       const index = Number.isInteger(cardIndex) ? cardIndex : 0;
       setMarked((prev) => new Set(prev).add(`${index}-${row}-${col}`));
       // Optimistically update the card grid

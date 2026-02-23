@@ -152,7 +152,17 @@ input:focus-visible, button:focus-visible {
 .bingo-grid{display:grid;grid-template-columns:repeat(5,1fr); gap:1px;}
 .bingo-cell{border:1px solid #1f2937; height:45px; width:45px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#111827; font-size:14px; background:#fff; border-radius:3px; padding:0;}
 .bingo-free{background:#1ca04c; color:#fff;}
-.bingo-marked{background:#22c55e; color:#0f172a;}
+.bingo-marked{background:#22c55e; color:#0f172a; transition: background-color 0.2s ease, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+.bingo-marked-pop {
+  animation: marked-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes marked-pop {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
 .bingo-current{outline:2px solid #fbbf24;}
 .bingo-disabled{opacity:0.65; cursor:default;}
 .bingo-free-wrap{position:relative; width:50%; height:50%; display:block; border-radius:3px; overflow:hidden;}
