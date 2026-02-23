@@ -10,6 +10,8 @@ import { PresenceService } from './services/PresenceService.js';
 import { BingoEngine } from './services/BingoEngine.js';
 
 const PHASES = { COUNTDOWN: 'COUNTDOWN', ACTIVE: 'ACTIVE', ENDED: 'ENDED' };
+const MAX_CALLS_PER_ROUND = 5;
+const RESULT_ANNOUNCE_DELAY_MS = 5000;
 
 function cardKey(card) {
   return card.flat().join(',');
@@ -54,6 +56,7 @@ export class GameManager {
     this.players = new Map();
     this.cardPool = this.createCardPool(30);
     this.presenceHeartbeatTimer = null;
+    this.noWinnerTimeout = null;
     this.commandReplayTtlMs = 60_000;
     this.rateLimits = {
       join: { windowMs: 10_000, max: 6 },
@@ -195,6 +198,10 @@ export class GameManager {
 
   async startCountdown() {
     await this.withLock('round-reset', 4000, async () => {
+      if (this.noWinnerTimeout) {
+        clearTimeout(this.noWinnerTimeout);
+        this.noWinnerTimeout = null;
+      }
       await this.stateStore.initRound(this.countdownSeconds);
       this.cardPool = this.createCardPool(30);
       for (const [socketId, player] of this.players.entries()) {
@@ -238,7 +245,7 @@ export class GameManager {
     await this.withLock('call-next-number', Math.max(1000, this.callIntervalMs - 250), async () => {
       const state = await this.stateStore.getRoundState();
       if (state.phase !== PHASES.ACTIVE) return;
-      if (state.calledNumbers.length >= 75) return;
+      if (state.calledNumbers.length >= MAX_CALLS_PER_ROUND) return;
 
       let num;
       do {
@@ -247,9 +254,15 @@ export class GameManager {
       const { calledNumbers } = await this.stateStore.addCalledNumber(num);
       this.io.emit('numberCalled', { number: num, calledNumbers });
 
-      // Check if maximum numbers reached without winner
-      if (calledNumbers.length >= 75) {
-        await this.endRoundWithWinner({ nickname: 'No winner' }, -1);
+      if (calledNumbers.length >= MAX_CALLS_PER_ROUND) {
+        this.timerService.stopAll();
+        if (this.noWinnerTimeout) {
+          clearTimeout(this.noWinnerTimeout);
+        }
+        this.noWinnerTimeout = setTimeout(() => {
+          this.noWinnerTimeout = null;
+          void this.endRoundWithWinner({ nickname: 'No winner', cards: [] }, -1, false);
+        }, RESULT_ANNOUNCE_DELAY_MS);
       }
     });
   }
@@ -498,7 +511,7 @@ export class GameManager {
     this.respondError(socket, 'claimBingo', requestId, ack, 'NO_BINGO', 'No valid Bingo yet.');
   }
 
-  async endRoundWithWinner(player, winningCardIndex) {
+  async endRoundWithWinner(player, winningCardIndex, persistWinner = true) {
     await this.withLock('end-round', 3000, async () => {
       const state = await this.stateStore.getRoundState();
       if (state.phase !== PHASES.ACTIVE) return;
@@ -506,8 +519,15 @@ export class GameManager {
 
       this.timerService.stopAll();
 
-      const winner = { nickname: player.nickname, at: Date.now() };
-      await this.runtimeMetaStore.addWinner(winner, 10);
+      if (this.noWinnerTimeout) {
+        clearTimeout(this.noWinnerTimeout);
+        this.noWinnerTimeout = null;
+      }
+
+      if (persistWinner && player?.nickname && player.nickname !== 'No winner') {
+        const winner = { nickname: player.nickname, at: Date.now() };
+        await this.runtimeMetaStore.addWinner(winner, 10);
+      }
 
       this.io.emit('gameEnd', {
         winnerNickname: player.nickname,
@@ -516,7 +536,7 @@ export class GameManager {
       });
       setTimeout(() => {
         void this.startCountdown();
-      }, 3000);
+      }, RESULT_ANNOUNCE_DELAY_MS);
     });
   }
 
