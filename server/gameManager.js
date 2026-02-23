@@ -1,9 +1,13 @@
 import { generateCard } from './utils/cardGenerator.js';
-import { checkWin } from './utils/winChecker.js';
 import jwt from 'jsonwebtoken';
 import { InMemoryGameStateStore } from './gameStateStore.js';
 import { InMemoryCommandGuardStore } from './commandGuardStore.js';
 import { InMemoryRuntimeMetaStore } from './runtimeMetaStore.js';
+
+// Import New Services
+import { TimerService } from './services/TimerService.js';
+import { PresenceService } from './services/PresenceService.js';
+import { BingoEngine } from './services/BingoEngine.js';
 
 const PHASES = { COUNTDOWN: 'COUNTDOWN', ACTIVE: 'ACTIVE', ENDED: 'ENDED' };
 
@@ -36,13 +40,19 @@ export class GameManager {
     this.commandGuardStore = commandGuardStore ?? new InMemoryCommandGuardStore();
     this.runtimeMetaStore = runtimeMetaStore ?? new InMemoryRuntimeMetaStore();
     this.serverInstanceId = serverInstanceId ?? `srv-${process.pid}`;
-    this.presenceTtlMs = presenceTtlMs;
-    this.presenceHeartbeatMs = presenceHeartbeatMs;
 
-    this.players = new Map(); // socketId -> { nickname, telegramUserId, cards, markedByCard:Set<string>[], reservedSlots:number[] }
-    this.cardPool = this.createCardPool(30); // fixed card pool per round
-    this.countdownTimer = null;
-    this.callTimer = null;
+    // Initialize Services
+    this.presenceService = new PresenceService(this.runtimeMetaStore, this.serverInstanceId, presenceTtlMs);
+    this.timerService = new TimerService(io, {
+      countdownSeconds,
+      callIntervalMs,
+      onCountdownTick: () => this.tickCountdown(),
+      onCallNextNumber: () => this.callNextNumber()
+    });
+
+    this.presenceHeartbeatMs = presenceHeartbeatMs;
+    this.players = new Map();
+    this.cardPool = this.createCardPool(30);
     this.presenceHeartbeatTimer = null;
     this.commandReplayTtlMs = 60_000;
     this.rateLimits = {
@@ -88,10 +98,6 @@ export class GameManager {
     return player?.telegramUserId ? `user:${player.telegramUserId}` : `socket:${socket.id}`;
   }
 
-  getPresenceToken(socketId) {
-    return `${this.serverInstanceId}:${socketId}`;
-  }
-
   startPresenceHeartbeat() {
     if (this.presenceHeartbeatTimer) {
       clearInterval(this.presenceHeartbeatTimer);
@@ -111,8 +117,7 @@ export class GameManager {
   }
 
   async refreshPresenceForPlayer(socketId, telegramUserId) {
-    const token = this.getPresenceToken(socketId);
-    const ok = await this.runtimeMetaStore.refreshPresence(telegramUserId, token, this.presenceTtlMs);
+    const ok = await this.presenceService.refreshPresence(telegramUserId, socketId);
     if (ok) return;
 
     const socket = this.io.sockets.sockets.get(socketId);
@@ -199,12 +204,7 @@ export class GameManager {
       this.io.emit('cardsTaken', { slots: [] });
       this.io.emit('countdown', { timeLeft: this.countdownSeconds });
 
-      if (this.countdownTimer) {
-        clearInterval(this.countdownTimer);
-      }
-      this.countdownTimer = setInterval(() => {
-        void this.tickCountdown();
-      }, 1000);
+      this.timerService.startCountdown();
     });
   }
 
@@ -215,7 +215,6 @@ export class GameManager {
       const timeLeft = await this.stateStore.decrementCountdown();
       this.io.emit('countdown', { timeLeft });
       if (timeLeft <= 0) {
-        clearInterval(this.countdownTimer);
         await this.beginActive();
       }
     });
@@ -228,13 +227,10 @@ export class GameManager {
       await this.stateStore.setPhase(PHASES.ACTIVE);
       await this.stateStore.setCountdown(0);
       this.io.emit('gameStart');
+
+      this.timerService.beginActive();
+      // Call first number immediately
       await this.callNextNumber();
-      if (this.callTimer) {
-        clearInterval(this.callTimer);
-      }
-      this.callTimer = setInterval(() => {
-        void this.callNextNumber();
-      }, this.callIntervalMs);
     });
   }
 
@@ -251,14 +247,9 @@ export class GameManager {
       const { calledNumbers } = await this.stateStore.addCalledNumber(num);
       this.io.emit('numberCalled', { number: num, calledNumbers });
 
-      // Auto-end round after 5 numbers for demo/quick cycle if no winner claimed
-      if (calledNumbers.length >= 5) {
-        await this.stateStore.setPhase(PHASES.ENDED);
-        clearInterval(this.callTimer);
-        this.io.emit('gameEnd', { winnerNickname: 'No winner', winningCard: null });
-        setTimeout(() => {
-          void this.startCountdown();
-        }, 3000);
+      // Check if maximum numbers reached without winner
+      if (calledNumbers.length >= 75) {
+        await this.endRoundWithWinner({ nickname: 'No winner' }, -1);
       }
     });
   }
@@ -315,14 +306,9 @@ export class GameManager {
       this.respondError(socket, 'join', requestId, ack, 'INVALID_USER', 'Invalid user.');
       return;
     }
-    for (const player of this.players.values()) {
-      if (player.telegramUserId === telegramUserId && player !== this.players.get(socket.id)) {
-        this.respondError(socket, 'join', requestId, ack, 'ALREADY_ACTIVE', 'This Telegram user is already in the game.');
-        return;
-      }
-    }
-    const presenceToken = this.getPresenceToken(socket.id);
-    const claimed = await this.runtimeMetaStore.claimPresence(telegramUserId, presenceToken, this.presenceTtlMs);
+
+    // Use Presence Service check
+    const claimed = await this.presenceService.claimPresence(telegramUserId, socket.id);
     if (!claimed) {
       this.respondError(socket, 'join', requestId, ack, 'ALREADY_ACTIVE', 'This Telegram user is already in the game.');
       return;
@@ -330,9 +316,9 @@ export class GameManager {
 
     const existing = this.players.get(socket.id);
     if (existing?.telegramUserId && existing.telegramUserId !== telegramUserId) {
-      const oldPresenceToken = this.getPresenceToken(socket.id);
-      await this.runtimeMetaStore.releasePresence(existing.telegramUserId, oldPresenceToken);
+      await this.presenceService.releasePresence(existing.telegramUserId, socket.id);
     }
+
     if (existing) {
       existing.nickname = safeNickname;
       existing.telegramUserId = telegramUserId;
@@ -358,7 +344,6 @@ export class GameManager {
 
     this.io.emit('playerJoined', { nickname: safeNickname, playerCount: this.players.size });
 
-    // Send immediate timer snapshot if in countdown
     const state = await this.stateStore.getRoundState();
     if (state.phase === PHASES.COUNTDOWN) socket.emit('countdown', { timeLeft: state.countdown });
     if (state.phase === PHASES.ACTIVE) socket.emit('gameStart');
@@ -412,16 +397,7 @@ export class GameManager {
     const ownerId = player.telegramUserId || socket.id;
     const reservation = await this.stateStore.reserveSlots(ownerId, requested);
     if (!reservation.ok) {
-      this.respondError(
-        socket,
-        'reserveCards',
-        requestId,
-        ack,
-        'SLOTS_TAKEN',
-        `Card${reservation.blocked.length > 1 ? 's' : ''} ${reservation.blocked.join(', ')} ${
-          reservation.blocked.length > 1 ? 'are' : 'is'
-        } already reserved.`,
-      );
+      this.respondError(socket, 'reserveCards', requestId, ack, 'SLOTS_TAKEN', `Card(s) ${reservation.blocked.join(', ')} taken.`);
       return;
     }
 
@@ -443,20 +419,9 @@ export class GameManager {
     const slots = payload.slots;
 
     const player = this.players.get(socket.id);
-    if (!player) {
-      this.respondError(socket, 'releaseCards', requestId, ack, 'NOT_JOINED', 'Join first before releasing cards.');
-      return;
-    }
-    if (!Array.isArray(slots)) {
-      this.respondError(socket, 'releaseCards', requestId, ack, 'INVALID_SLOTS', 'Slots must be an array.');
-      return;
-    }
-    const normalized = slots
-      .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n) && n >= 1 && n <= 30);
-
+    if (!player) return;
     const ownerId = player.telegramUserId || socket.id;
-    const result = await this.stateStore.releaseSlots(ownerId, normalized);
+    const result = await this.stateStore.releaseSlots(ownerId, slots);
     player.reservedSlots = result.reservedSlots;
 
     if (result.changed) {
@@ -465,8 +430,6 @@ export class GameManager {
       this.io.emit('cardsTaken', { slots: result.takenSlots });
     }
     this.respondSuccess(socket, 'releaseCards', requestId, ack, 'RELEASED', 'Cards released.', {
-      changed: result.changed,
-      cards: player.cards,
       takenSlots: result.takenSlots,
       reservedSlots: [...player.reservedSlots],
     });
@@ -477,8 +440,7 @@ export class GameManager {
     if (player) {
       const ownerId = player.telegramUserId || socket.id;
       if (player.telegramUserId) {
-        const presenceToken = this.getPresenceToken(socket.id);
-        await this.runtimeMetaStore.releasePresence(player.telegramUserId, presenceToken);
+        await this.presenceService.releasePresence(player.telegramUserId, socket.id);
       }
       const result = await this.stateStore.releaseAll(ownerId);
       this.io.emit('cardsTaken', { slots: result.takenSlots });
@@ -492,59 +454,29 @@ export class GameManager {
     const { payload, requestId } = guarded;
     const { cardIndex, row, col } = payload;
     const player = this.players.get(socket.id);
-    if (!player) {
-      this.respondError(socket, 'markCell', requestId, ack, 'NOT_JOINED', 'Join first before marking.', false);
-      return;
-    }
+    if (!player) return;
 
     const state = await this.stateStore.getRoundState();
-    if (state.phase !== PHASES.ACTIVE) {
-      this.respondError(socket, 'markCell', requestId, ack, 'ROUND_NOT_ACTIVE', 'Round is not active.', false);
-      return;
-    }
-    if (!Number.isInteger(cardIndex) || !Number.isInteger(row) || !Number.isInteger(col)) {
-      this.respondError(socket, 'markCell', requestId, ack, 'INVALID_POSITION', 'Invalid cell position.', false);
-      return;
-    }
-    if (cardIndex < 0 || cardIndex > 1 || row < 0 || row > 4 || col < 0 || col > 4) {
-      this.respondError(socket, 'markCell', requestId, ack, 'INVALID_POSITION', 'Invalid cell position.', false);
-      return;
-    }
+    if (state.phase !== PHASES.ACTIVE) return;
 
     const card = player.cards?.[cardIndex];
-    if (!card) {
-      this.respondError(socket, 'markCell', requestId, ack, 'CARD_NOT_ASSIGNED', 'Card not assigned.', false);
+    const validation = BingoEngine.validateMark(card, row, col, state.calledNumbers);
+
+    if (!validation.valid) {
+      this.respondError(socket, 'markCell', requestId, ack, validation.error, 'Invalid mark.', false);
       return;
     }
 
     const markedSet = player.markedByCard?.[cardIndex];
-    if (!markedSet) {
-      this.respondError(socket, 'markCell', requestId, ack, 'CARD_NOT_ASSIGNED', 'Card not assigned.', false);
-      return;
-    }
-
     const key = `${row}-${col}`;
-    if (markedSet.has(key)) {
-      this.respondError(socket, 'markCell', requestId, ack, 'ALREADY_MARKED', 'Cell already marked.', false);
-      return;
-    }
-
-    const cell = card?.[row]?.[col];
-    if (!cell) {
-      this.respondError(socket, 'markCell', requestId, ack, 'INVALID_POSITION', 'Invalid cell position.', false);
-      return;
-    }
-    if (cell.value !== 0 && !state.calledNumbers.includes(cell.value)) {
-      this.respondError(socket, 'markCell', requestId, ack, 'NUMBER_NOT_CALLED', 'Number is not called yet.', false);
-      return;
-    }
+    if (markedSet.has(key)) return;
 
     markedSet.add(key);
-    card[row][col] = { ...cell, marked: true };
+    card[row][col].marked = true;
     socket.emit('markConfirmed', { cardIndex, row, col });
     this.respondSuccess(socket, 'markCell', requestId, ack, 'MARKED', 'Cell marked.', { cardIndex, row, col });
 
-    if (checkWin(markedSet)) {
+    if (BingoEngine.checkBingo(markedSet)) {
       await this.endRoundWithWinner(player, cardIndex);
     }
   }
@@ -555,23 +487,12 @@ export class GameManager {
     const { requestId } = guarded;
 
     const player = this.players.get(socket.id);
-    if (!player) {
-      this.respondError(socket, 'claimBingo', requestId, ack, 'NOT_JOINED', 'Join first before claiming.');
-      return;
-    }
-    const state = await this.stateStore.getRoundState();
-    if (state.phase !== PHASES.ACTIVE) {
-      this.respondError(socket, 'claimBingo', requestId, ack, 'ROUND_NOT_ACTIVE', 'Round is not active.');
-      return;
-    }
+    if (!player) return;
 
-    const winningCardIndex = player.markedByCard.findIndex((markedSet) => checkWin(markedSet));
+    const winningCardIndex = player.markedByCard.findIndex((markedSet) => BingoEngine.checkBingo(markedSet));
     if (winningCardIndex >= 0) {
       await this.endRoundWithWinner(player, winningCardIndex);
-      this.respondSuccess(socket, 'claimBingo', requestId, ack, 'BINGO_ACCEPTED', 'Bingo accepted.', {
-        winnerNickname: player.nickname,
-        winningCardIndex,
-      });
+      this.respondSuccess(socket, 'claimBingo', requestId, ack, 'BINGO_ACCEPTED', 'Bingo accepted.');
       return;
     }
     this.respondError(socket, 'claimBingo', requestId, ack, 'NO_BINGO', 'No valid Bingo yet.');
@@ -582,7 +503,9 @@ export class GameManager {
       const state = await this.stateStore.getRoundState();
       if (state.phase !== PHASES.ACTIVE) return;
       await this.stateStore.setPhase(PHASES.ENDED);
-      clearInterval(this.callTimer);
+
+      this.timerService.stopAll();
+
       const winner = { nickname: player.nickname, at: Date.now() };
       await this.runtimeMetaStore.addWinner(winner, 10);
 
