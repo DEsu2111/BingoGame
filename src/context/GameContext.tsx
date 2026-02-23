@@ -122,14 +122,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     // Withdraw funds (with validation)
     case 'WITHDRAW': {
       const amt = action.payload;
-      if (amt < 2) {
-        return { ...state, insufficientBalanceMessage: 'Minimum withdraw is 2.' };
+      if (amt <= 0) {
+        return { ...state, insufficientBalanceMessage: 'Enter a valid withdraw amount.' };
       }
       if (amt > state.balance) {
         return { ...state, insufficientBalanceMessage: 'Cannot withdraw more than balance.' };
-      }
-      if (state.balance - amt <= 0) {
-        return { ...state, insufficientBalanceMessage: 'Withdraw would leave balance at 0. Keep some balance.' };
       }
       return { ...state, balance: state.balance - amt, insufficientBalanceMessage: '' };
     }
@@ -247,9 +244,13 @@ const GameContext = createContext<GameContextValue | undefined>(undefined);
 /** Read the saved balance from localStorage (returns default if not found). */
 function readInitialBalance(): number {
   if (typeof window === 'undefined') return DEFAULT_BALANCE;
-  const raw = localStorage.getItem(BALANCE_STORAGE_KEY);
-  const parsed = raw ? Number(raw) : DEFAULT_BALANCE;
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_BALANCE;
+  try {
+    const raw = localStorage.getItem(BALANCE_STORAGE_KEY);
+    const parsed = raw ? Number(raw) : DEFAULT_BALANCE;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_BALANCE;
+  } catch {
+    return DEFAULT_BALANCE;
+  }
 }
 
 /** Read saved game results from localStorage (returns [] if not found). */
@@ -295,13 +296,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Persist balance to localStorage whenever it changes
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(BALANCE_STORAGE_KEY, String(state.balance));
+    try {
+      localStorage.setItem(BALANCE_STORAGE_KEY, String(state.balance));
+    } catch {
+      // Ignore storage write errors in restricted browsers/webviews.
+    }
   }, [state.balance, hydrated]);
 
   // Persist results to localStorage whenever they change
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(state.results));
+    try {
+      localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(state.results));
+    } catch {
+      // Ignore storage write errors in restricted browsers/webviews.
+    }
   }, [state.results, hydrated]);
 
   // Hydrate from localStorage on mount (avoids SSR/client mismatch)

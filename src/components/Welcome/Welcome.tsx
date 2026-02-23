@@ -68,8 +68,9 @@ export default function Welcome(props: WelcomeProps) {
 
   const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
     primeSoundEngine();
-    const value = Number(walletAmount);
-    if (!Number.isFinite(value) || value <= 0) {
+    const numeric = Number(walletAmount);
+    const value = Number.isFinite(numeric) ? Math.round(numeric * 100) / 100 : 0;
+    if (value <= 0) {
       playUiErrorSound();
       return;
     }
