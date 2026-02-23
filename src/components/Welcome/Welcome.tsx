@@ -52,7 +52,11 @@ export default function Welcome(props: WelcomeProps) {
       playUiErrorSound();
       return;
     }
-    const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
+    if (parsedBet <= 0 || parsedBet > state.balance) {
+      playUiErrorSound();
+      return;
+    }
+
     if (state.selectedCardIndices.length === 2) {
       onReleaseSlots?.(state.selectedCardIndices.map((index) => index + 1));
     }
@@ -61,7 +65,8 @@ export default function Welcome(props: WelcomeProps) {
       onReserveSlots?.(pendingSelectedIndices.map((index) => index + 1));
     }
     dispatch({ type: 'SET_JOINED', payload: true });
-    dispatch({ type: 'SET_BET', payload: betPayload });
+    dispatch({ type: 'SET_BET', payload: parsedBet });
+    dispatch({ type: 'WITHDRAW', payload: parsedBet });
     dispatch({ type: 'VIEW_GAME' });
     playUiConfirmSound();
   };
