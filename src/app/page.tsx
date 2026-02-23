@@ -13,7 +13,7 @@
  */
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMultiplayerBingo } from '@/hooks/useMultiplayerBingo';
 import { useTelegramAuth, type TelegramAuthLoginResult } from '@/hooks/useTelegramAuth';
 import { useGame } from '@/context/GameContext';
@@ -22,6 +22,14 @@ import SelectCards from '@/components/Welcome/SelectCards';
 import AuthForm from '@/components/AuthForm';
 import GameBoard from '@/components/GameBoard';
 import ResultOverlay from '@/components/ResultOverlay';
+import {
+  playLoginSuccessSound,
+  playLoseSound,
+  playNumberCalledSound,
+  playRoundStartSound,
+  playWinSound,
+  primeSoundEngine,
+} from '@/lib/sound';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -76,6 +84,9 @@ export default function Page() {
   const [nickInput, setNickInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(true); // True = user needs to set a nickname (signup)
+  const prevNicknameRef = useRef('');
+  const prevPhaseRef = useRef(phase);
+  const prevLastNumberRef = useRef<number | null>(null);
 
   /** Nickname must be at least 3 characters to be valid. */
   const isNicknameValid = nickInput.trim().length >= 3;
@@ -167,6 +178,49 @@ export default function Page() {
     });
   }, [dispatch, phase, called, lastNumber]);
 
+  // Sound: play a success sound once when user becomes logged in/joined.
+  useEffect(() => {
+    if (!nickname) {
+      prevNicknameRef.current = '';
+      return;
+    }
+    if (!prevNicknameRef.current) {
+      playLoginSuccessSound();
+    }
+    prevNicknameRef.current = nickname;
+  }, [nickname]);
+
+  // Sound: phase transitions for round start/end.
+  useEffect(() => {
+    const previous = prevPhaseRef.current;
+    if (phase === previous) return;
+
+    if (phase === 'ACTIVE') {
+      playRoundStartSound();
+    }
+    if (phase === 'ENDED') {
+      const isSelfWinner = Boolean(lastWinner && nickname && lastWinner === nickname);
+      if (isSelfWinner) {
+        playWinSound();
+      } else {
+        playLoseSound();
+      }
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, lastWinner, nickname]);
+
+  // Sound: short cue on every new called number during active round.
+  useEffect(() => {
+    if (phase !== 'ACTIVE' || lastNumber === null) {
+      prevLastNumberRef.current = lastNumber;
+      return;
+    }
+    if (lastNumber !== prevLastNumberRef.current) {
+      playNumberCalledSound(lastNumber);
+    }
+    prevLastNumberRef.current = lastNumber;
+  }, [phase, lastNumber]);
+
   // ─── Event Handlers ─────────────────────────────────────
 
   /**
@@ -176,6 +230,7 @@ export default function Page() {
    */
   const handleAuthSubmit = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    primeSoundEngine();
     if (!authToken) {
       setAuthError('Auth is not ready yet. Open from Telegram bot menu button and wait 2-3 seconds.');
       return;
