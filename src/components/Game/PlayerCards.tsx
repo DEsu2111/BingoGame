@@ -51,4 +51,6 @@ const PlayerCards = React.memo(({ cards, currentCall, canMark, onMarkCell }: Pla
   );
 });
 
+PlayerCards.displayName = 'PlayerCards';
+
 export default PlayerCards;

@@ -13,7 +13,7 @@
  */
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { BingoCard } from '@/types/game';
 import FreeCell from '../ui/FreeCell';
 
@@ -34,7 +34,7 @@ const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniC
    * Used to highlight the matching row and column as visual hints.
    * Returns null if the current call is not on this card.
    */
-  const matchCoords = useMemo(() => {
+  const matchCoords = (() => {
     if (currentCall === null) return null;
     for (let r = 0; r < card.length; r += 1) {
       for (let c = 0; c < card[r].length; c += 1) {
@@ -42,7 +42,7 @@ const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniC
       }
     }
     return null;
-  }, [card, currentCall]);
+  })();
 
   return (
     <div className="bingo-card" role="grid">
@@ -91,7 +91,6 @@ const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniC
                   onClick={() => onCellClick(r, c)}
                   disabled={disabled || free || cell.marked}  // Can't click FREE or already-marked cells
                   aria-label={cellLabel}
-                  aria-pressed={cell.marked}
                 >
                   {free ? <FreeCell /> : cell.value}
                 </button>
@@ -103,5 +102,7 @@ const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniC
     </div>
   );
 });
+
+MiniCard.displayName = 'MiniCard';
 
 export default MiniCard;

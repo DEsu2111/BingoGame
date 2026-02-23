@@ -63,6 +63,7 @@ export default function Page() {
     error,         // Server-side error message (if any)
     clearError,    // Clear the error message
     releaseSlots,  // Release previously reserved card slots
+    logout,        // Clear client game/session state
   } = useMultiplayerBingo();
 
   // --- UI state from context ---
@@ -246,7 +247,7 @@ export default function Page() {
 
   // Round ended → show the result
   if (state.mode === 'result') {
-    return <ResultOverlay />;
+    return <ResultOverlay nickname={nickname} lastWinner={lastWinner} onLogout={logout} />;
   }
 
   // Default: welcome/lobby screen

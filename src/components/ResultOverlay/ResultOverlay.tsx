@@ -10,6 +10,12 @@
 
 import ResultPage from '@/components/Result/ResultPage';
 
-export default function ResultOverlay() {
-  return <ResultPage />;
+type ResultOverlayProps = {
+  nickname: string;
+  lastWinner: string | null;
+  onLogout: () => void;
+};
+
+export default function ResultOverlay({ nickname, lastWinner, onLogout }: ResultOverlayProps) {
+  return <ResultPage nickname={nickname} lastWinner={lastWinner} onLogout={onLogout} />;
 }

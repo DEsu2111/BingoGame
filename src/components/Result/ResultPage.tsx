@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
-import { useMultiplayerBingo } from '@/hooks/useMultiplayerBingo';
 
 const TELEGRAM_BOT_USERNAME = 'OnlineBingoGame_bot';
 const TELEGRAM_BOT_NAME = 'BingoGame';
@@ -22,9 +21,14 @@ function shareToTelegram(status: 'win' | 'loss', score: number) {
   }
 }
 
-export default function ResultPage() {
+type ResultPageProps = {
+  nickname: string;
+  lastWinner: string | null;
+  onLogout: () => void;
+};
+
+export default function ResultPage({ nickname, lastWinner, onLogout }: ResultPageProps) {
   const { state, dispatch } = useGame();
-  const { nickname, lastWinner, logout } = useMultiplayerBingo();
 
   const winnerName = lastWinner ?? state.winnerName ?? null;
   const isSelfWinner = winnerName && nickname && winnerName === nickname;
@@ -54,7 +58,6 @@ export default function ResultPage() {
       ? 'No one claimed Bingo this round. Try again next round.'
       : `${winnerName} took this round. You can win the next one.`;
 
-  const actionLabel = 'Share to Telegram (share link)';
   const actionClick = () => shareToTelegram('win', state.winAmount);
 
   const detailLines = useMemo(() => {
@@ -79,7 +82,7 @@ export default function ResultPage() {
           <button
             type="button"
             onClick={() => {
-              logout();
+              onLogout();
               dispatch({ type: 'PLAY_AGAIN' });
             }}
             className="absolute right-4 top-4 z-20 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"

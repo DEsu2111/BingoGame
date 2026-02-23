@@ -116,4 +116,6 @@ const AuthForm = React.memo(({
   );
 });
 
+AuthForm.displayName = 'AuthForm';
+
 export default AuthForm;

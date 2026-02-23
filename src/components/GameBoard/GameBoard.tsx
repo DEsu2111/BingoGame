@@ -89,4 +89,6 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
   );
 });
 
+GameBoard.displayName = 'GameBoard';
+
 export default GameBoard;

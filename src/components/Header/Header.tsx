@@ -70,4 +70,6 @@ const Header = React.memo(({ firstFive, countdown, lastNumber }: HeaderProps) =>
   );
 });
 
+Header.displayName = 'Header';
+
 export default Header;

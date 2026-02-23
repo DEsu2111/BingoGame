@@ -47,7 +47,7 @@ const CalledNumbersTable = React.memo(({ called, currentCall = null, cellRefs }:
       (a, b) => hashOrder(a, seed) - hashOrder(b, seed),
     );
     return base;
-  }, [called, seed]);
+  }, [seed]);
 
   // Split into rows of 5 for the table layout
   const rows = useMemo(() => {
@@ -141,5 +141,7 @@ const CalledNumbersTable = React.memo(({ called, currentCall = null, cellRefs }:
     </section>
   );
 });
+
+CalledNumbersTable.displayName = 'CalledNumbersTable';
 
 export default CalledNumbersTable;

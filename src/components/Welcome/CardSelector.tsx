@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import { BingoCard } from '@/types/game';
-import FreeCell from '../ui/FreeCell';
 
 interface CardSelectorProps {
   cards: BingoCard[];

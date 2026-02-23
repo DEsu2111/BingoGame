@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import CardSelector from './CardSelector';
 
@@ -20,7 +20,6 @@ export default function Welcome(props: WelcomeProps) {
     nickname,
     error,
     onClearError,
-    phase = 'COUNTDOWN',
     countdown: sharedCountdown,
     takenSlots = [],
     onReserveSlots,
@@ -31,7 +30,6 @@ export default function Welcome(props: WelcomeProps) {
   const [walletAmount, setWalletAmount] = useState<string>('50');
   const walletInputRef = useRef<HTMLInputElement | null>(null);
   const countdown = sharedCountdown ?? 60;
-  const [readyToStart, setReadyToStart] = useState(false);
   const [pendingSelectedIndices, setPendingSelectedIndices] = useState<number[]>(state.selectedCardIndices);
 
   const parsedBet = useMemo(() => {
@@ -60,7 +58,6 @@ export default function Welcome(props: WelcomeProps) {
     dispatch({ type: 'SET_JOINED', payload: true });
     dispatch({ type: 'SET_BET', payload: betPayload });
     dispatch({ type: 'VIEW_GAME' });
-    setReadyToStart(true);
   };
 
   const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
@@ -80,13 +77,6 @@ export default function Welcome(props: WelcomeProps) {
   const isReservedError = Boolean(error && error.toLowerCase().includes('reserved'));
   const alreadyJoined = state.hasJoinedRound;
   
-
-  useEffect(() => {
-    // When a new round starts (countdown) and player isn't joined, reset selection.
-    if (phase === 'COUNTDOWN' && !state.hasJoinedRound) {
-      setPendingSelectedIndices([]);
-    }
-  }, [phase, state.hasJoinedRound]);
 
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col bg-[#050712] text-slate-100 antialiased overflow-y-auto overflow-x-hidden small-scroll pb-safe-bottom">

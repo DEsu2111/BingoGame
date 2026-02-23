@@ -1,27 +1,29 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyTelegramInitData } from '@/lib/telegram';
+import { requireServerEnv } from '@/lib/serverEnv';
 import { SignJWT } from 'jose';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const JWT_SECRET = process.env.JWT_SECRET || '';
-const DATABASE_URL = process.env.DATABASE_URL || '';
-
 function getJwtSecretKey() {
-  if (!JWT_SECRET) throw new Error('Missing JWT_SECRET');
-  return new TextEncoder().encode(JWT_SECRET);
+  const jwtSecret = requireServerEnv('JWT_SECRET');
+  return new TextEncoder().encode(jwtSecret);
+}
+
+function readAuthEnv() {
+  const telegramBotToken = requireServerEnv('TELEGRAM_BOT_TOKEN');
+  // Prisma requires DATABASE_URL, so validate here for explicit erroring.
+  requireServerEnv('DATABASE_URL');
+  return { telegramBotToken };
 }
 
 export async function POST(req: Request) {
   try {
+    const { telegramBotToken } = readAuthEnv();
     const body = await req.json();
     const initData: string = body?.initData || '';
     if (!initData) return NextResponse.json({ error: 'initData required' }, { status: 400 });
-    if (!TELEGRAM_BOT_TOKEN || !JWT_SECRET || !DATABASE_URL) {
-      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
-    }
 
-    const verification = verifyTelegramInitData(initData, TELEGRAM_BOT_TOKEN);
+    const verification = verifyTelegramInitData(initData, telegramBotToken);
     if (!verification.ok) return NextResponse.json({ error: verification.error }, { status: 401 });
 
     const userRaw = verification.data?.user;
@@ -80,6 +82,9 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('Telegram auth route failed:', err);
     const message = err instanceof Error ? err.message : 'Server error';
+    if (message.includes('Missing required environment variable')) {
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
     if (message.includes('P1001') || message.toLowerCase().includes('database')) {
       return NextResponse.json({ error: 'Database unavailable' }, { status: 500 });
     }

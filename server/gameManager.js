@@ -1,6 +1,9 @@
 import { generateCard } from './utils/cardGenerator.js';
 import { checkWin } from './utils/winChecker.js';
 import jwt from 'jsonwebtoken';
+import { InMemoryGameStateStore } from './gameStateStore.js';
+import { InMemoryCommandGuardStore } from './commandGuardStore.js';
+import { InMemoryRuntimeMetaStore } from './runtimeMetaStore.js';
 
 const PHASES = { COUNTDOWN: 'COUNTDOWN', ACTIVE: 'ACTIVE', ENDED: 'ENDED' };
 
@@ -9,7 +12,19 @@ function cardKey(card) {
 }
 
 export class GameManager {
-  constructor(io, { countdownSeconds = 60, callIntervalMs = 4000 } = {}) {
+  constructor(
+    io,
+    {
+      countdownSeconds = 60,
+      callIntervalMs = 4000,
+      stateStore,
+      commandGuardStore,
+      runtimeMetaStore,
+      serverInstanceId,
+      presenceTtlMs = 120_000,
+      presenceHeartbeatMs = 30_000,
+    } = {},
+  ) {
     if (!process.env.JWT_SECRET) {
       throw new Error('JWT_SECRET is required to start the game server.');
     }
@@ -17,18 +32,18 @@ export class GameManager {
     this.jwtSecret = process.env.JWT_SECRET;
     this.countdownSeconds = countdownSeconds;
     this.callIntervalMs = callIntervalMs;
+    this.stateStore = stateStore ?? new InMemoryGameStateStore(countdownSeconds);
+    this.commandGuardStore = commandGuardStore ?? new InMemoryCommandGuardStore();
+    this.runtimeMetaStore = runtimeMetaStore ?? new InMemoryRuntimeMetaStore();
+    this.serverInstanceId = serverInstanceId ?? `srv-${process.pid}`;
+    this.presenceTtlMs = presenceTtlMs;
+    this.presenceHeartbeatMs = presenceHeartbeatMs;
 
     this.players = new Map(); // socketId -> { nickname, telegramUserId, cards, markedByCard:Set<string>[], reservedSlots:number[] }
-    this.reservedSlots = new Set(); // shared slot ids (1..30) reserved this round
     this.cardPool = this.createCardPool(30); // fixed card pool per round
-    this.calledNumbers = new Set();
-    this.phase = PHASES.COUNTDOWN;
-    this.countdown = countdownSeconds;
     this.countdownTimer = null;
     this.callTimer = null;
-    this.lastWinners = []; // { nickname, at }
-    this.commandResponses = new Map(); // `${actorKey}:${action}:${requestId}` -> { response, at }
-    this.commandWindows = new Map(); // `${actorKey}:${action}` -> { startedAt, count }
+    this.presenceHeartbeatTimer = null;
     this.commandReplayTtlMs = 60_000;
     this.rateLimits = {
       join: { windowMs: 10_000, max: 6 },
@@ -39,20 +54,22 @@ export class GameManager {
     };
   }
 
-  start() {
-    this.startCountdown();
+  async start() {
+    this.startPresenceHeartbeat();
+    await this.startCountdown();
   }
 
-  getCurrentState() {
-    const calledNumbers = [...this.calledNumbers];
-    const lastNumber = calledNumbers.length ? calledNumbers[calledNumbers.length - 1] : null;
+  async getCurrentState() {
+    const state = await this.stateStore.getRoundState();
+    const takenSlots = await this.stateStore.getTakenSlots();
+    const winners = await this.runtimeMetaStore.getWinners(10);
     return {
-      phase: this.phase,
-      countdown: this.phase === PHASES.COUNTDOWN ? this.countdown : 0,
-      calledNumbers,
-      lastNumber,
-      winners: this.lastWinners,
-      takenSlots: [...this.reservedSlots],
+      phase: state.phase,
+      countdown: state.countdown,
+      calledNumbers: state.calledNumbers,
+      lastNumber: state.lastNumber,
+      winners,
+      takenSlots,
     };
   }
 
@@ -71,72 +88,69 @@ export class GameManager {
     return player?.telegramUserId ? `user:${player.telegramUserId}` : `socket:${socket.id}`;
   }
 
-  pruneCommandCaches() {
-    const now = Date.now();
-    for (const [key, value] of this.commandResponses.entries()) {
-      if (now - value.at > this.commandReplayTtlMs) {
-        this.commandResponses.delete(key);
-      }
-    }
-    if (this.commandResponses.size > 2000) {
-      const sorted = [...this.commandResponses.entries()].sort((a, b) => a[1].at - b[1].at);
-      const overflow = this.commandResponses.size - 1500;
-      for (let i = 0; i < overflow; i += 1) {
-        this.commandResponses.delete(sorted[i][0]);
-      }
-    }
+  getPresenceToken(socketId) {
+    return `${this.serverInstanceId}:${socketId}`;
   }
 
-  getReplayKey(socket, action, requestId) {
-    return `${this.getActorKey(socket)}:${action}:${requestId}`;
+  startPresenceHeartbeat() {
+    if (this.presenceHeartbeatTimer) {
+      clearInterval(this.presenceHeartbeatTimer);
+    }
+    this.presenceHeartbeatTimer = setInterval(() => {
+      void this.refreshPresenceForPlayers();
+    }, this.presenceHeartbeatMs);
   }
 
-  getReplayResponse(socket, action, requestId) {
-    if (!requestId) return null;
-    const replayKey = this.getReplayKey(socket, action, requestId);
-    const replay = this.commandResponses.get(replayKey);
-    if (!replay) return null;
-    if (Date.now() - replay.at > this.commandReplayTtlMs) {
-      this.commandResponses.delete(replayKey);
-      return null;
+  async refreshPresenceForPlayers() {
+    const jobs = [];
+    for (const [socketId, player] of this.players.entries()) {
+      if (!player?.telegramUserId) continue;
+      jobs.push(this.refreshPresenceForPlayer(socketId, player.telegramUserId));
     }
-    return replay.response;
+    await Promise.allSettled(jobs);
+  }
+
+  async refreshPresenceForPlayer(socketId, telegramUserId) {
+    const token = this.getPresenceToken(socketId);
+    const ok = await this.runtimeMetaStore.refreshPresence(telegramUserId, token, this.presenceTtlMs);
+    if (ok) return;
+
+    const socket = this.io.sockets.sockets.get(socketId);
+    if (socket) {
+      socket.emit('gameError', { code: 'SESSION_TAKEN', message: 'Session is active elsewhere.' });
+      socket.disconnect(true);
+    } else {
+      this.players.delete(socketId);
+    }
   }
 
   storeReplayResponse(socket, action, requestId, response) {
     if (!requestId) return;
-    const replayKey = this.getReplayKey(socket, action, requestId);
-    this.commandResponses.set(replayKey, { response, at: Date.now() });
-    this.pruneCommandCaches();
+    const actorKey = this.getActorKey(socket);
+    void this.commandGuardStore
+      .storeReplayResponse(actorKey, action, requestId, response, this.commandReplayTtlMs)
+      .catch((error) => console.error('Failed to store replay response:', error));
   }
 
-  isRateLimited(socket, action) {
+  async isRateLimited(socket, action) {
     const limit = this.rateLimits[action];
     if (!limit) return false;
-
-    const key = `${this.getActorKey(socket)}:${action}`;
-    const now = Date.now();
-    const entry = this.commandWindows.get(key);
-    if (!entry || now - entry.startedAt >= limit.windowMs) {
-      this.commandWindows.set(key, { startedAt: now, count: 1 });
-      return false;
-    }
-
-    entry.count += 1;
-    return entry.count > limit.max;
+    const actorKey = this.getActorKey(socket);
+    return this.commandGuardStore.isRateLimited(actorKey, action, limit.windowMs, limit.max);
   }
 
-  guardCommand(socket, action, rawPayload, ack) {
+  async guardCommand(socket, action, rawPayload, ack) {
     const payload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
     const requestId = typeof payload.requestId === 'string' ? payload.requestId.trim() : '';
+    const actorKey = this.getActorKey(socket);
 
-    const replayResponse = this.getReplayResponse(socket, action, requestId);
+    const replayResponse = await this.commandGuardStore.getReplayResponse(actorKey, action, requestId);
     if (replayResponse) {
       this.safeAck(ack, replayResponse);
       return null;
     }
 
-    if (this.isRateLimited(socket, action)) {
+    if (await this.isRateLimited(socket, action)) {
       const response = this.buildAck(false, 'RATE_LIMIT', 'Too many requests. Slow down.');
       this.safeAck(ack, response);
       socket.emit('gameError', { code: response.code, message: response.message });
@@ -164,78 +178,117 @@ export class GameManager {
     return response;
   }
 
-  startCountdown() {
-    this.phase = PHASES.COUNTDOWN;
-    this.countdown = this.countdownSeconds;
-    this.calledNumbers.clear();
-    this.cardPool = this.createCardPool(30);
-    this.reservedSlots.clear();
-    for (const [socketId, player] of this.players.entries()) {
-      this.clearPlayerCards(player);
-      this.io.to(socketId).emit('cardsAssigned', { cards: [] });
+  async withLock(lockName, ttlMs, fn) {
+    const token = await this.stateStore.acquireLock(lockName, ttlMs);
+    if (!token) return null;
+    try {
+      return await fn();
+    } finally {
+      await this.stateStore.releaseLock(lockName, token);
     }
-    this.io.emit('cardsTaken', { slots: [] });
-    this.io.emit('countdown', { timeLeft: this.countdown });
+  }
 
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-    }
-    this.countdownTimer = setInterval(() => {
-      this.countdown -= 1;
-      this.io.emit('countdown', { timeLeft: this.countdown });
-      if (this.countdown <= 0) {
-        clearInterval(this.countdownTimer);
-        this.beginActive();
+  async startCountdown() {
+    await this.withLock('round-reset', 4000, async () => {
+      await this.stateStore.initRound(this.countdownSeconds);
+      this.cardPool = this.createCardPool(30);
+      for (const [socketId, player] of this.players.entries()) {
+        this.clearPlayerCards(player);
+        this.io.to(socketId).emit('cardsAssigned', { cards: [] });
       }
-    }, 1000);
+      this.io.emit('cardsTaken', { slots: [] });
+      this.io.emit('countdown', { timeLeft: this.countdownSeconds });
+
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer);
+      }
+      this.countdownTimer = setInterval(() => {
+        void this.tickCountdown();
+      }, 1000);
+    });
   }
 
-  beginActive() {
-    this.phase = PHASES.ACTIVE;
-    this.io.emit('gameStart');
-    this.callNextNumber();
-    if (this.callTimer) {
-      clearInterval(this.callTimer);
-    }
-    this.callTimer = setInterval(() => this.callNextNumber(), this.callIntervalMs);
+  async tickCountdown() {
+    await this.withLock('countdown-tick', 900, async () => {
+      const state = await this.stateStore.getRoundState();
+      if (state.phase !== PHASES.COUNTDOWN) return;
+      const timeLeft = await this.stateStore.decrementCountdown();
+      this.io.emit('countdown', { timeLeft });
+      if (timeLeft <= 0) {
+        clearInterval(this.countdownTimer);
+        await this.beginActive();
+      }
+    });
   }
 
-  callNextNumber() {
-    if (this.phase !== PHASES.ACTIVE) return;
-    if (this.calledNumbers.size >= 75) return;
+  async beginActive() {
+    await this.withLock('phase-active', 3000, async () => {
+      const state = await this.stateStore.getRoundState();
+      if (state.phase !== PHASES.COUNTDOWN) return;
+      await this.stateStore.setPhase(PHASES.ACTIVE);
+      await this.stateStore.setCountdown(0);
+      this.io.emit('gameStart');
+      await this.callNextNumber();
+      if (this.callTimer) {
+        clearInterval(this.callTimer);
+      }
+      this.callTimer = setInterval(() => {
+        void this.callNextNumber();
+      }, this.callIntervalMs);
+    });
+  }
 
-    let num;
-    do {
-      num = Math.floor(Math.random() * 75) + 1;
-    } while (this.calledNumbers.has(num));
-    this.calledNumbers.add(num);
-    this.io.emit('numberCalled', { number: num, calledNumbers: [...this.calledNumbers] });
+  async callNextNumber() {
+    await this.withLock('call-next-number', Math.max(1000, this.callIntervalMs - 250), async () => {
+      const state = await this.stateStore.getRoundState();
+      if (state.phase !== PHASES.ACTIVE) return;
+      if (state.calledNumbers.length >= 75) return;
 
-    // Auto-end round after 5 numbers for demo/quick cycle if no winner claimed
-    if (this.calledNumbers.size >= 5) {
-      this.phase = PHASES.ENDED;
-      clearInterval(this.callTimer);
-      this.io.emit('gameEnd', { winnerNickname: 'No winner', winningCard: null });
-      setTimeout(() => this.startCountdown(), 3000);
-    }
+      let num;
+      do {
+        num = Math.floor(Math.random() * 75) + 1;
+      } while (state.calledNumbers.includes(num));
+      const { calledNumbers } = await this.stateStore.addCalledNumber(num);
+      this.io.emit('numberCalled', { number: num, calledNumbers });
+
+      // Auto-end round after 5 numbers for demo/quick cycle if no winner claimed
+      if (calledNumbers.length >= 5) {
+        await this.stateStore.setPhase(PHASES.ENDED);
+        clearInterval(this.callTimer);
+        this.io.emit('gameEnd', { winnerNickname: 'No winner', winningCard: null });
+        setTimeout(() => {
+          void this.startCountdown();
+        }, 3000);
+      }
+    });
   }
 
   registerSocket(socket) {
-    socket.on('join', (payload, ack) => this.handleJoin(socket, payload, ack));
-    socket.on('syncState', () => this.handleSyncState(socket));
-    socket.on('reserveCards', (payload, ack) => this.handleReserve(socket, payload, ack));
-    socket.on('releaseCards', (payload, ack) => this.handleRelease(socket, payload, ack));
-    socket.on('markCell', (payload, ack) => this.handleMark(socket, payload, ack));
-    socket.on('claimBingo', (payloadOrAck, maybeAck) => {
-      const payload = typeof payloadOrAck === 'function' || payloadOrAck == null ? {} : payloadOrAck;
-      const ack = typeof payloadOrAck === 'function' ? payloadOrAck : maybeAck;
-      this.handleClaim(socket, payload, ack);
-    });
-    socket.on('disconnect', () => this.handleDisconnect(socket));
+    const safe = (handler) => (...args) => {
+      Promise.resolve(handler(...args)).catch((error) => {
+        console.error('Socket handler error:', error);
+        socket.emit('gameError', { code: 'SERVER_ERROR', message: 'Internal server error.' });
+      });
+    };
+
+    socket.on('join', safe((payload, ack) => this.handleJoin(socket, payload, ack)));
+    socket.on('syncState', safe(() => this.handleSyncState(socket)));
+    socket.on('reserveCards', safe((payload, ack) => this.handleReserve(socket, payload, ack)));
+    socket.on('releaseCards', safe((payload, ack) => this.handleRelease(socket, payload, ack)));
+    socket.on('markCell', safe((payload, ack) => this.handleMark(socket, payload, ack)));
+    socket.on(
+      'claimBingo',
+      safe((payloadOrAck, maybeAck) => {
+        const payload = typeof payloadOrAck === 'function' || payloadOrAck == null ? {} : payloadOrAck;
+        const ack = typeof payloadOrAck === 'function' ? payloadOrAck : maybeAck;
+        return this.handleClaim(socket, payload, ack);
+      }),
+    );
+    socket.on('disconnect', safe(() => this.handleDisconnect(socket)));
   }
 
-  handleJoin(socket, rawPayload = {}, ack) {
-    const guarded = this.guardCommand(socket, 'join', rawPayload, ack);
+  async handleJoin(socket, rawPayload = {}, ack) {
+    const guarded = await this.guardCommand(socket, 'join', rawPayload, ack);
     if (!guarded) return;
     const { payload, requestId } = guarded;
     const nickname = payload.nickname;
@@ -268,8 +321,18 @@ export class GameManager {
         return;
       }
     }
+    const presenceToken = this.getPresenceToken(socket.id);
+    const claimed = await this.runtimeMetaStore.claimPresence(telegramUserId, presenceToken, this.presenceTtlMs);
+    if (!claimed) {
+      this.respondError(socket, 'join', requestId, ack, 'ALREADY_ACTIVE', 'This Telegram user is already in the game.');
+      return;
+    }
 
     const existing = this.players.get(socket.id);
+    if (existing?.telegramUserId && existing.telegramUserId !== telegramUserId) {
+      const oldPresenceToken = this.getPresenceToken(socket.id);
+      await this.runtimeMetaStore.releasePresence(existing.telegramUserId, oldPresenceToken);
+    }
     if (existing) {
       existing.nickname = safeNickname;
       existing.telegramUserId = telegramUserId;
@@ -288,7 +351,7 @@ export class GameManager {
       playerId: socket.id,
       nickname: safeNickname,
       cards: player?.cards ?? [],
-      currentState: this.getCurrentState(),
+      currentState: await this.getCurrentState(),
     };
     socket.emit('joined', joinedPayload);
     this.respondSuccess(socket, 'join', requestId, ack, 'JOINED', 'Joined successfully.', joinedPayload);
@@ -296,14 +359,15 @@ export class GameManager {
     this.io.emit('playerJoined', { nickname: safeNickname, playerCount: this.players.size });
 
     // Send immediate timer snapshot if in countdown
-    if (this.phase === PHASES.COUNTDOWN) socket.emit('countdown', { timeLeft: this.countdown });
-    if (this.phase === PHASES.ACTIVE) socket.emit('gameStart');
+    const state = await this.stateStore.getRoundState();
+    if (state.phase === PHASES.COUNTDOWN) socket.emit('countdown', { timeLeft: state.countdown });
+    if (state.phase === PHASES.ACTIVE) socket.emit('gameStart');
   }
 
-  handleSyncState(socket) {
+  async handleSyncState(socket) {
     const player = this.players.get(socket.id);
     socket.emit('stateSync', {
-      currentState: this.getCurrentState(),
+      currentState: await this.getCurrentState(),
       player: {
         cards: player?.cards ?? [],
         reservedSlots: player?.reservedSlots ?? [],
@@ -311,8 +375,8 @@ export class GameManager {
     });
   }
 
-  handleReserve(socket, rawPayload = {}, ack) {
-    const guarded = this.guardCommand(socket, 'reserveCards', rawPayload, ack);
+  async handleReserve(socket, rawPayload = {}, ack) {
+    const guarded = await this.guardCommand(socket, 'reserveCards', rawPayload, ack);
     if (!guarded) return;
     const { payload, requestId } = guarded;
     const slots = payload.slots;
@@ -326,16 +390,10 @@ export class GameManager {
       this.respondError(socket, 'reserveCards', requestId, ack, 'INVALID_SLOTS', 'Slots must be an array.');
       return;
     }
-    if (this.reservedSlots.size >= 30) {
+    const takenSlots = await this.stateStore.getTakenSlots();
+    if (takenSlots.length >= 30) {
       this.respondError(socket, 'reserveCards', requestId, ack, 'CARDS_FULL', 'All cards are reserved for this round.');
       return;
-    }
-    const prevSlots = [...player.reservedSlots];
-    if (prevSlots.length) {
-      for (const n of prevSlots) {
-        this.reservedSlots.delete(n);
-      }
-      player.reservedSlots = [];
     }
 
     const normalized = Array.from(
@@ -351,38 +409,35 @@ export class GameManager {
       return;
     }
 
-    const blocked = requested.filter((n) => this.reservedSlots.has(n));
-    if (blocked.length) {
-      if (prevSlots.length) {
-        this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
-      }
+    const ownerId = player.telegramUserId || socket.id;
+    const reservation = await this.stateStore.reserveSlots(ownerId, requested);
+    if (!reservation.ok) {
       this.respondError(
         socket,
         'reserveCards',
         requestId,
         ack,
         'SLOTS_TAKEN',
-        `Card${blocked.length > 1 ? 's' : ''} ${blocked.join(', ')} ${blocked.length > 1 ? 'are' : 'is'} already reserved.`,
+        `Card${reservation.blocked.length > 1 ? 's' : ''} ${reservation.blocked.join(', ')} ${
+          reservation.blocked.length > 1 ? 'are' : 'is'
+        } already reserved.`,
       );
       return;
     }
 
-    for (const n of requested) {
-      this.reservedSlots.add(n);
-      player.reservedSlots.push(n);
-    }
-    this.assignCardsForPlayer(player, requested);
+    player.reservedSlots = reservation.reservedSlots;
+    this.assignCardsForPlayer(player, reservation.reservedSlots);
     socket.emit('cardsAssigned', { cards: player.cards });
-    this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
+    this.io.emit('cardsTaken', { slots: reservation.takenSlots });
     this.respondSuccess(socket, 'reserveCards', requestId, ack, 'RESERVED', 'Cards reserved.', {
       cards: player.cards,
-      takenSlots: [...this.reservedSlots],
+      takenSlots: reservation.takenSlots,
       reservedSlots: [...player.reservedSlots],
     });
   }
 
-  handleRelease(socket, rawPayload = {}, ack) {
-    const guarded = this.guardCommand(socket, 'releaseCards', rawPayload, ack);
+  async handleRelease(socket, rawPayload = {}, ack) {
+    const guarded = await this.guardCommand(socket, 'releaseCards', rawPayload, ack);
     if (!guarded) return;
     const { payload, requestId } = guarded;
     const slots = payload.slots;
@@ -399,51 +454,40 @@ export class GameManager {
     const normalized = slots
       .map((n) => Number(n))
       .filter((n) => Number.isInteger(n) && n >= 1 && n <= 30);
-    let changed = false;
-    player.reservedSlots = player.reservedSlots.filter((n) => {
-      if (normalized.includes(n)) {
-        this.reservedSlots.delete(n);
-        changed = true;
-        return false;
-      }
-      return true;
-    });
-    if (changed) {
+
+    const ownerId = player.telegramUserId || socket.id;
+    const result = await this.stateStore.releaseSlots(ownerId, normalized);
+    player.reservedSlots = result.reservedSlots;
+
+    if (result.changed) {
       this.clearPlayerCards(player);
       socket.emit('cardsAssigned', { cards: [] });
-      this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
+      this.io.emit('cardsTaken', { slots: result.takenSlots });
     }
     this.respondSuccess(socket, 'releaseCards', requestId, ack, 'RELEASED', 'Cards released.', {
-      changed,
+      changed: result.changed,
       cards: player.cards,
-      takenSlots: [...this.reservedSlots],
+      takenSlots: result.takenSlots,
       reservedSlots: [...player.reservedSlots],
     });
   }
 
-  handleDisconnect(socket) {
+  async handleDisconnect(socket) {
     const player = this.players.get(socket.id);
     if (player) {
-      for (const n of player.reservedSlots) {
-        this.reservedSlots.delete(n);
+      const ownerId = player.telegramUserId || socket.id;
+      if (player.telegramUserId) {
+        const presenceToken = this.getPresenceToken(socket.id);
+        await this.runtimeMetaStore.releasePresence(player.telegramUserId, presenceToken);
       }
-      this.io.emit('cardsTaken', { slots: [...this.reservedSlots] });
+      const result = await this.stateStore.releaseAll(ownerId);
+      this.io.emit('cardsTaken', { slots: result.takenSlots });
       this.players.delete(socket.id);
-    }
-    for (const key of this.commandWindows.keys()) {
-      if (key.includes(`socket:${socket.id}`)) {
-        this.commandWindows.delete(key);
-      }
-    }
-    for (const key of this.commandResponses.keys()) {
-      if (key.includes(`socket:${socket.id}`)) {
-        this.commandResponses.delete(key);
-      }
     }
   }
 
-  handleMark(socket, rawPayload = {}, ack) {
-    const guarded = this.guardCommand(socket, 'markCell', rawPayload, ack);
+  async handleMark(socket, rawPayload = {}, ack) {
+    const guarded = await this.guardCommand(socket, 'markCell', rawPayload, ack);
     if (!guarded) return;
     const { payload, requestId } = guarded;
     const { cardIndex, row, col } = payload;
@@ -453,7 +497,8 @@ export class GameManager {
       return;
     }
 
-    if (this.phase !== PHASES.ACTIVE) {
+    const state = await this.stateStore.getRoundState();
+    if (state.phase !== PHASES.ACTIVE) {
       this.respondError(socket, 'markCell', requestId, ack, 'ROUND_NOT_ACTIVE', 'Round is not active.', false);
       return;
     }
@@ -489,7 +534,7 @@ export class GameManager {
       this.respondError(socket, 'markCell', requestId, ack, 'INVALID_POSITION', 'Invalid cell position.', false);
       return;
     }
-    if (cell.value !== 0 && !this.calledNumbers.has(cell.value)) {
+    if (cell.value !== 0 && !state.calledNumbers.includes(cell.value)) {
       this.respondError(socket, 'markCell', requestId, ack, 'NUMBER_NOT_CALLED', 'Number is not called yet.', false);
       return;
     }
@@ -500,12 +545,12 @@ export class GameManager {
     this.respondSuccess(socket, 'markCell', requestId, ack, 'MARKED', 'Cell marked.', { cardIndex, row, col });
 
     if (checkWin(markedSet)) {
-      this.endRoundWithWinner(player, cardIndex);
+      await this.endRoundWithWinner(player, cardIndex);
     }
   }
 
-  handleClaim(socket, rawPayload = {}, ack) {
-    const guarded = this.guardCommand(socket, 'claimBingo', rawPayload, ack);
+  async handleClaim(socket, rawPayload = {}, ack) {
+    const guarded = await this.guardCommand(socket, 'claimBingo', rawPayload, ack);
     if (!guarded) return;
     const { requestId } = guarded;
 
@@ -514,14 +559,15 @@ export class GameManager {
       this.respondError(socket, 'claimBingo', requestId, ack, 'NOT_JOINED', 'Join first before claiming.');
       return;
     }
-    if (this.phase !== PHASES.ACTIVE) {
+    const state = await this.stateStore.getRoundState();
+    if (state.phase !== PHASES.ACTIVE) {
       this.respondError(socket, 'claimBingo', requestId, ack, 'ROUND_NOT_ACTIVE', 'Round is not active.');
       return;
     }
 
     const winningCardIndex = player.markedByCard.findIndex((markedSet) => checkWin(markedSet));
     if (winningCardIndex >= 0) {
-      this.endRoundWithWinner(player, winningCardIndex);
+      await this.endRoundWithWinner(player, winningCardIndex);
       this.respondSuccess(socket, 'claimBingo', requestId, ack, 'BINGO_ACCEPTED', 'Bingo accepted.', {
         winnerNickname: player.nickname,
         winningCardIndex,
@@ -531,20 +577,24 @@ export class GameManager {
     this.respondError(socket, 'claimBingo', requestId, ack, 'NO_BINGO', 'No valid Bingo yet.');
   }
 
-  endRoundWithWinner(player, winningCardIndex) {
-    if (this.phase !== PHASES.ACTIVE) return;
-    this.phase = PHASES.ENDED;
-    clearInterval(this.callTimer);
-    const winner = { nickname: player.nickname, at: Date.now() };
-    this.lastWinners.unshift(winner);
-    this.lastWinners = this.lastWinners.slice(0, 10);
+  async endRoundWithWinner(player, winningCardIndex) {
+    await this.withLock('end-round', 3000, async () => {
+      const state = await this.stateStore.getRoundState();
+      if (state.phase !== PHASES.ACTIVE) return;
+      await this.stateStore.setPhase(PHASES.ENDED);
+      clearInterval(this.callTimer);
+      const winner = { nickname: player.nickname, at: Date.now() };
+      await this.runtimeMetaStore.addWinner(winner, 10);
 
-    this.io.emit('gameEnd', {
-      winnerNickname: player.nickname,
-      winningCard: player.cards?.[winningCardIndex] ?? null,
-      winningCards: player.cards ?? [],
+      this.io.emit('gameEnd', {
+        winnerNickname: player.nickname,
+        winningCard: player.cards?.[winningCardIndex] ?? null,
+        winningCards: player.cards ?? [],
+      });
+      setTimeout(() => {
+        void this.startCountdown();
+      }, 3000);
     });
-    setTimeout(() => this.startCountdown(), 3000);
   }
 
   createCardPool(count) {
