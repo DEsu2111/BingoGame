@@ -2,9 +2,8 @@
  * CalledNumbersTable.tsx — 75-Number Grid Display
  *
  * Displays all 75 bingo numbers (1–75) in a grid with B-I-N-G-O headers.
- * Numbers are displayed in a deterministic pseudo-random order (shuffled
- * based on how many numbers have been called, so the layout subtly shifts
- * each draw to keep the UI feeling alive).
+ * Numbers are displayed in fixed numeric order (1→75) so players
+ * can quickly locate cells on small screens.
  *
  * Visual states:
  *   - Called: green highlight (cell-called)
@@ -24,119 +23,69 @@ interface CalledNumbersTableProps {
   cellRefs?: MutableRefObject<Map<number, HTMLTableCellElement>>;  // Optional ref map for animations
 }
 
-// ─── Helpers ────────────────────────────────────────────
-
-/**
- * A simple hash function for deterministic pseudo-random ordering.
- * Uses a variant of the Knuth multiplicative hash to produce
- * a stable sort order that changes when `seed` changes.
- */
-function hashOrder(value: number, seed: number) {
-  return ((value * 2654435761 + seed * 1013904223) >>> 0) % 100000;
-}
-
 // ─── Component ──────────────────────────────────────────
 
-const CalledNumbersTable = React.memo(({ called, currentCall = null, cellRefs }: CalledNumbersTableProps) => {
-  // Seed changes with each new call, causing numbers to re-shuffle
-  const seed = called.size + 1;
+const CalledNumbersTable = React.memo(({ called, currentCall = null }: CalledNumbersTableProps) => {
+  // Generate all 75 numbers sequentially (1...75)
+  const numbers = Array.from({ length: 75 }, (_, i) => i + 1);
 
-  // Generate all 75 numbers in a pseudo-random order (stable per seed)
-  const numbers = useMemo(() => {
-    const base = Array.from({ length: 75 }, (_, i) => i + 1).sort(
-      (a, b) => hashOrder(a, seed) - hashOrder(b, seed),
-    );
-    return base;
-  }, [seed]);
-
-  // Split into rows of 5 for the table layout
-  const rows = useMemo(() => {
-    const r: number[][] = [];
-    for (let i = 0; i < numbers.length; i += 5) {
-      const slice = numbers.slice(i, i + 5);
-      while (slice.length < 5) slice.push(0); // Pad short rows
-      r.push(slice);
-    }
-    return r;
-  }, [numbers]);
-
-  const lastCalled = currentCall;
+  // Get first 5 for the special top circles (latest 5 or first 5 based on UX, using slice(0,5) for 'first 5' as per user UI)
+  const firstFive = Array.from(called).slice(0, 5);
 
   return (
-    <section
-      className="relative flex h-full w-full flex-col rounded-2xl border border-white/10 bg-slate-900/70 p-0 shadow-2xl backdrop-blur-xl"
-      aria-label="Bingo number grid"
-    >
-
-      <div className="flex-1 overflow-hidden">
-        <table className="h-full w-full border-collapse text-center text-sm" role="grid">
-          {/* B-I-N-G-O column headers */}
-          <thead>
-            <tr role="row">
-              {['B', 'I', 'N', 'G', 'O'].map((letter) => (
-                <th
-                  key={letter}
-                  role="columnheader"
-                  className="sticky top-0 z-10 bg-slate-900/80 p-0 text-[11px] font-bold uppercase tracking-widest text-slate-300 backdrop-blur"
+    <section className="flex flex-col h-full bg-[#0f172a] rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
+      {/* Header Area with First 5 and Ball info */}
+      <div className="p-3 bg-slate-900/80 border-b border-white/5 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black mb-1.5 px-0.5">First 5</span>
+            <div className="flex gap-1.5">
+              {[0, 1, 2, 3, 4].map((idx) => (
+                <div
+                  key={idx}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300
+                    ${firstFive[idx] ? 'bg-white text-slate-900 shadow-[0_0_12px_rgba(255,255,255,0.4)] scale-100' : 'bg-slate-800/50 border border-white/10 text-white/5 scale-90'}`}
                 >
-                  {letter}
-                </th>
+                  {firstFive[idx] || ''}
+                </div>
               ))}
-            </tr>
-          </thead>
+            </div>
+          </div>
+        </div>
 
-          {/* Number grid */}
-          <tbody role="rowgroup">
-            {rows.map((row, rowIndex) => {
-              // Check if every number in this row has been called
-              const rowComplete = row.every((v) => v === 0 || called.has(v));
-              return (
-                <tr key={rowIndex} className={rowComplete ? 'row-success-flash' : ''} role="row">
-                  {row.map((value, colIndex) => {
-                    if (value === 0) {
-                      return null; // Skip padding cells
-                    }
-                    const hit = called.has(value);
-                    const isCurrent = currentCall !== null && currentCall === value;
-                    const delay = (rowIndex * 5 + colIndex) * 6; // Staggered animation delay
-
-                    return (
-                      <td
-                        key={value}
-                        role="gridcell"
-                        aria-selected={hit}
-                        aria-label={`Number ${value}, ${hit ? 'called' : 'not called'}${isCurrent ? ', current call' : ''}`}
-                        ref={(el) => {
-                          if (el && cellRefs?.current) cellRefs.current.set(value, el);
-                        }}
-                        className="p-0"
-                      >
-                        <div
-                          className={`cell ${hit ? 'cell-called' : 'cell-uncalled'} ${isCurrent ? 'cell-current' : ''} ${lastCalled === value ? 'cell-last' : ''
-                            }`}
-                          style={{ animationDelay: `${delay}ms` }}
-                          aria-hidden="true"
-                        >
-                          {value}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {/* Central Ball Indicator (Matching screenshot) */}
+        <div className="flex justify-center my-3">
+          <div className="relative group">
+            <div className="absolute -inset-2 bg-amber-400 opacity-20 blur-xl rounded-full animate-pulse"></div>
+            <div className="relative w-28 h-12 bg-amber-400 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(245,158,11,0.4)] border-b-4 border-amber-600/30">
+              <div className="bg-slate-900 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mr-2.5 shadow-inner">
+                <span className="opacity-70">8</span>
+              </div>
+              <span className="text-slate-900 font-[900] text-2xl tracking-tighter drop-shadow-sm">
+                {currentCall || '--'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Legend bar at the bottom */}
-      <div className="flex flex-wrap items-center gap-2 px-1 py-1 text-xs text-slate-300" role="note">
-        <span className="legend-dot bg-emerald-400" aria-hidden="true" /> <span>Called</span>
-        <span className="legend-dot bg-slate-500" aria-hidden="true" /> <span>Not called</span>
-        <span className="legend-dot border border-dashed border-slate-500" aria-hidden="true" /> <span>Placeholder</span>
-        <span className="ml-3 rounded-full bg-amber-400/20 px-2 py-1 font-semibold text-amber-200">
-          Current: {currentCall ?? '-'}
-        </span>
+      {/* Sequential 75-Number Grid */}
+      <div className="flex-1 overflow-y-auto p-2.5 scrollbar-hide bg-slate-950/20">
+        <div className="grid grid-cols-5 gap-2">
+          {numbers.map((num) => {
+            const hit = called.has(num);
+            const isLast = currentCall === num;
+            return (
+              <div
+                key={num}
+                className={`cell transition-all duration-200 ${hit ? 'cell-called' : 'bg-slate-800/20 text-slate-600 border border-white/5'} ${isLast ? 'cell-last animate-pulse' : ''}`}
+                style={{ fontSize: '14px' }}
+              >
+                {num}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

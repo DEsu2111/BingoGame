@@ -39,9 +39,14 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
   const isParticipant = cards.length === 2;
 
   return (
+<<<<<<< ours
     <main className="h-screen w-screen bg-[#0b1020] text-white overflow-hidden flex flex-col" role="main">
       {/* Fixed Header */}
       <Header firstFive={firstFive} countdown={countdown} lastNumber={lastNumber} />
+=======
+    <main className="h-dvh w-screen bg-[#0b1020] text-white overflow-hidden" role="main">
+      <div className="h-full w-full">
+>>>>>>> theirs
 
       {/* Responsive Shell: Vertical Stack on Mobile, Horizontal on Desktop */}
       <section
@@ -56,6 +61,7 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
           <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
         </div>
 
+<<<<<<< ours
         {/* Player Cards Panel */}
         {isParticipant ? (
           <div
@@ -69,6 +75,34 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
                 canMark={phase === 'ACTIVE'}
                 onMarkCell={onMarkCell}
               />
+=======
+        {/* Main content: called numbers table + player cards (or spectator message) */}
+        <section className="game-main flex h-[calc(100dvh-10vh)] w-full gap-1 overflow-hidden px-1 pb-1" aria-label="Game board and cards">
+
+          {/* Called Numbers Table — takes more space for spectators */}
+          <div
+            className={`rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden ${isParticipant ? 'basis-[54%] max-w-[54%]' : 'basis-[70%] max-w-[70%]'
+              }`}
+            aria-label="Table of all possible bingo numbers"
+          >
+            <CalledNumbersTable called={calledSet} currentCall={lastNumber} />
+          </div>
+
+          {/* Right panel: player's cards OR a "not joined" placeholder */}
+          {isParticipant ? (
+            <div
+              className="basis-[46%] max-w-[46%] rounded-2xl border border-slate-800 bg-slate-900/70 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden"
+              aria-label="Your bingo cards"
+            >
+              <div className="player-cards-stack">
+                <PlayerCards
+                  cards={cards}
+                  currentCall={lastNumber}
+                  canMark={phase === 'ACTIVE'}  // Only allow marking during active play
+                  onMarkCell={onMarkCell}
+                />
+              </div>
+>>>>>>> theirs
             </div>
           </div>
         ) : (
