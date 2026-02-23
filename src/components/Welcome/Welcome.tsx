@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useGame } from '@/context/GameContext';
+import { playUiConfirmSound, playUiErrorSound, playUiTapSound, primeSoundEngine } from '@/lib/sound';
 import CardSelector from './CardSelector';
 
 export type WelcomeProps = {
@@ -46,7 +47,11 @@ export default function Welcome(props: WelcomeProps) {
    * If cards aren't selected, the reducer will auto-pick the first two.
    */
   const handleStart = () => {
-    if (!canProceed) return;
+    primeSoundEngine();
+    if (!canProceed) {
+      playUiErrorSound();
+      return;
+    }
     const betPayload = parsedBet > 0 && state.balance >= parsedBet ? parsedBet : 0;
     if (state.selectedCardIndices.length === 2) {
       onReleaseSlots?.(state.selectedCardIndices.map((index) => index + 1));
@@ -58,20 +63,28 @@ export default function Welcome(props: WelcomeProps) {
     dispatch({ type: 'SET_JOINED', payload: true });
     dispatch({ type: 'SET_BET', payload: betPayload });
     dispatch({ type: 'VIEW_GAME' });
+    playUiConfirmSound();
   };
 
   const handleWallet = (type: 'DEPOSIT' | 'WITHDRAW') => {
+    primeSoundEngine();
     const value = Number(walletAmount);
-    if (!Number.isFinite(value) || value <= 0) return;
+    if (!Number.isFinite(value) || value <= 0) {
+      playUiErrorSound();
+      return;
+    }
     dispatch({ type, payload: value });
     setWalletAmount('50');
+    playUiTapSound();
   };
 
   const handleClearSelection = () => {
+    primeSoundEngine();
     setPendingSelectedIndices([]);
     dispatch({ type: 'SELECT_CARDS', payload: [] });
     dispatch({ type: 'SET_JOINED', payload: false });
     onClearError?.();
+    playUiTapSound();
   };
 
   const isReservedError = Boolean(error && error.toLowerCase().includes('reserved'));
@@ -115,7 +128,11 @@ export default function Welcome(props: WelcomeProps) {
               <button
                 type="button"
                 aria-label="Top up"
-                onClick={() => walletInputRef.current?.focus()}
+                onClick={() => {
+                  primeSoundEngine();
+                  playUiTapSound();
+                  walletInputRef.current?.focus();
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-slate-900 font-black shadow-[0_0_14px_rgba(251,191,36,0.5)] hover:scale-105 active:scale-95 transition"
               >
                 +
@@ -185,7 +202,11 @@ export default function Welcome(props: WelcomeProps) {
                 key={val}
                 type="button"
                 className="quick-chip"
-                onClick={() => setBetInput(String((parsedBet || 0) + val))}
+                onClick={() => {
+                  primeSoundEngine();
+                  playUiTapSound();
+                  setBetInput(String((parsedBet || 0) + val));
+                }}
               >
                 +{val}
               </button>
@@ -193,7 +214,11 @@ export default function Welcome(props: WelcomeProps) {
             <button
               type="button"
               className="quick-chip flex-1"
-              onClick={() => setBetInput(String(Math.floor(state.balance)))}
+              onClick={() => {
+                primeSoundEngine();
+                playUiTapSound();
+                setBetInput(String(Math.floor(state.balance)));
+              }}
             >
               Max
             </button>

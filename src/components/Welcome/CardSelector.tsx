@@ -1,6 +1,12 @@
 ﻿'use client';
 
 import { BingoCard } from '@/types/game';
+import {
+  playCardDeselectSound,
+  playCardSelectSound,
+  playUiErrorSound,
+  primeSoundEngine,
+} from '@/lib/sound';
 
 interface CardSelectorProps {
   cards: BingoCard[];
@@ -20,19 +26,28 @@ export default function CardSelector({
   onRelease,
 }: CardSelectorProps) {
   const toggleCard = (index: number) => {
+    primeSoundEngine();
     const isTaken = takenSlots.includes(index + 1) && !selectedIndices.includes(index);
-    if (isTaken) return;
+    if (isTaken) {
+      playUiErrorSound();
+      return;
+    }
 
     if (selectedIndices.includes(index)) {
+      playCardDeselectSound();
       onRelease?.([index + 1]);
       onSelect(selectedIndices.filter((selectedIndex) => selectedIndex !== index));
       return;
     }
 
     if (selectedIndices.length < 2) {
+      playCardSelectSound(selectedIndices.length + 1);
       onReserve?.([index + 1]);
       onSelect([...selectedIndices, index]);
+      return;
     }
+
+    playUiErrorSound();
   };
 
   return (

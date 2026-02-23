@@ -15,6 +15,7 @@
 
 import React from 'react';
 import { BingoCard } from '@/types/game';
+import { playCardMarkSound, primeSoundEngine } from '@/lib/sound';
 import FreeCell from '../ui/FreeCell';
 
 // ─── Props ──────────────────────────────────────────────
@@ -88,7 +89,11 @@ const MiniCard = React.memo(({ card, currentCall, onCellClick, disabled }: MiniC
                   role="gridcell"
                   type="button"
                   className={base}
-                  onClick={() => onCellClick(r, c)}
+                  onClick={() => {
+                    primeSoundEngine();
+                    playCardMarkSound(cell.value);
+                    onCellClick(r, c);
+                  }}
                   disabled={disabled || free || cell.marked}  // Can't click FREE or already-marked cells
                   aria-label={cellLabel}
                 >

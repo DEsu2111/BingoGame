@@ -1,5 +1,6 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+const ETHIO_PENTATONIC_OFFSETS = [0, 2, 3, 7, 9];
 
 function ensureAudio() {
   if (typeof window === 'undefined') return null;
@@ -40,9 +41,107 @@ function tone(
   osc.stop(startAt + duration);
 }
 
+function chime(
+  context: AudioContext,
+  destination: GainNode,
+  frequency: number,
+  startAt: number,
+  duration: number,
+  volume: number,
+) {
+  tone(context, destination, frequency, startAt, duration, volume, 'triangle');
+  tone(context, destination, frequency * 2, startAt + 0.005, duration * 0.75, volume * 0.42, 'sine');
+  tone(context, destination, frequency * 3, startAt + 0.01, duration * 0.5, volume * 0.2, 'sine');
+}
+
+function scaleFreq(base: number, step: number) {
+  const octaveShift = Math.floor(step / ETHIO_PENTATONIC_OFFSETS.length);
+  const scaleIndex = step % ETHIO_PENTATONIC_OFFSETS.length;
+  const semitones = ETHIO_PENTATONIC_OFFSETS[scaleIndex] + octaveShift * 12;
+  return base * 2 ** (semitones / 12);
+}
+
 export function primeSoundEngine() {
   try {
     ensureAudio();
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playUiTapSound() {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    chime(context, destination, 660, context.currentTime, 0.08, 0.04);
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playUiConfirmSound() {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    chime(context, destination, scaleFreq(330, 2), now, 0.13, 0.07);
+    chime(context, destination, scaleFreq(330, 3), now + 0.09, 0.14, 0.08);
+    chime(context, destination, scaleFreq(330, 5), now + 0.19, 0.2, 0.09);
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playUiErrorSound() {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    tone(context, destination, 240, now, 0.12, 0.06, 'sawtooth');
+    tone(context, destination, 206, now + 0.08, 0.18, 0.07, 'triangle');
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playCardSelectSound(selectedCount: number) {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    chime(context, destination, scaleFreq(392, selectedCount), now, 0.12, 0.08);
+    if (selectedCount >= 2) {
+      chime(context, destination, scaleFreq(392, selectedCount + 2), now + 0.08, 0.18, 0.09);
+    }
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playCardDeselectSound() {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    chime(context, destination, scaleFreq(330, 1), now, 0.12, 0.05);
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function playCardMarkSound(value: number) {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    const step = Math.abs(value) % ETHIO_PENTATONIC_OFFSETS.length;
+    chime(context, destination, scaleFreq(440, step), now, 0.09, 0.05);
   } catch {
     // Ignore unsupported audio environments.
   }
@@ -54,9 +153,9 @@ export function playLoginSuccessSound() {
     if (!audio) return;
     const { ctx: context, master: destination } = audio;
     const now = context.currentTime;
-    tone(context, destination, 440, now, 0.16, 0.09, 'triangle');
-    tone(context, destination, 660, now + 0.09, 0.17, 0.11, 'triangle');
-    tone(context, destination, 880, now + 0.18, 0.2, 0.1, 'sine');
+    chime(context, destination, scaleFreq(349, 0), now, 0.16, 0.08);
+    chime(context, destination, scaleFreq(349, 2), now + 0.08, 0.17, 0.1);
+    chime(context, destination, scaleFreq(349, 4), now + 0.16, 0.22, 0.11);
   } catch {
     // Ignore unsupported audio environments.
   }
@@ -68,9 +167,9 @@ export function playRoundStartSound() {
     if (!audio) return;
     const { ctx: context, master: destination } = audio;
     const now = context.currentTime;
-    tone(context, destination, 220, now, 0.22, 0.13, 'square');
-    tone(context, destination, 330, now + 0.11, 0.2, 0.1, 'triangle');
-    tone(context, destination, 494, now + 0.22, 0.24, 0.09, 'sine');
+    chime(context, destination, scaleFreq(294, 0), now, 0.2, 0.09);
+    chime(context, destination, scaleFreq(294, 2), now + 0.09, 0.2, 0.1);
+    chime(context, destination, scaleFreq(294, 4), now + 0.18, 0.26, 0.1);
   } catch {
     // Ignore unsupported audio environments.
   }
@@ -82,8 +181,8 @@ export function playNumberCalledSound(number: number) {
     if (!audio) return;
     const { ctx: context, master: destination } = audio;
     const now = context.currentTime;
-    const pitch = 420 + (number % 12) * 22;
-    tone(context, destination, pitch, now, 0.11, 0.07, 'triangle');
+    const step = Math.abs(number) % ETHIO_PENTATONIC_OFFSETS.length;
+    chime(context, destination, scaleFreq(370, step), now, 0.1, 0.05);
   } catch {
     // Ignore unsupported audio environments.
   }
@@ -95,8 +194,9 @@ export function playLoseSound() {
     if (!audio) return;
     const { ctx: context, master: destination } = audio;
     const now = context.currentTime;
-    tone(context, destination, 240, now, 0.2, 0.09, 'sawtooth');
-    tone(context, destination, 190, now + 0.12, 0.24, 0.08, 'triangle');
+    tone(context, destination, scaleFreq(220, 2), now, 0.2, 0.07, 'triangle');
+    tone(context, destination, scaleFreq(220, 1), now + 0.11, 0.2, 0.06, 'triangle');
+    tone(context, destination, scaleFreq(220, 0), now + 0.22, 0.24, 0.07, 'sawtooth');
   } catch {
     // Ignore unsupported audio environments.
   }
@@ -109,9 +209,10 @@ export function playWinSound() {
     const { ctx: context, master: destination } = audio;
     const now = context.currentTime;
 
-    tone(context, destination, 180, now, 0.45, 0.18, 'triangle');
-    tone(context, destination, 780, now + 0.08, 0.36, 0.12, 'sine');
-    tone(context, destination, 1040, now + 0.18, 0.4, 0.1, 'sine');
+    chime(context, destination, scaleFreq(330, 0), now, 0.22, 0.09);
+    chime(context, destination, scaleFreq(330, 2), now + 0.08, 0.22, 0.1);
+    chime(context, destination, scaleFreq(330, 4), now + 0.16, 0.25, 0.11);
+    chime(context, destination, scaleFreq(330, 7), now + 0.26, 0.36, 0.12);
   } catch {
     // Ignore unsupported audio environments.
   }
