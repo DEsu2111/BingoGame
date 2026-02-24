@@ -1421,27 +1421,37 @@ button:focus-visible {
   height: calc(50% - 4px);
   background: #f7fafc;
   border-radius: 10px;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid rgba(15, 23, 42, 0.35);
+  display: flex;
 }
 
 .game-phone-cards .bingo-card {
   max-width: 100%;
   width: 100%;
+  height: 100%;
   background: #f2f4f8;
   border: 0;
   border-radius: 8px;
   padding: 0;
   box-shadow: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .game-phone-cards .bingo-head {
   margin-bottom: 2px;
 }
 
+.game-phone-cards .bingo-grid {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+}
+
 .game-phone-cards .bingo-cell {
   width: 100%;
-  height: 38px;
+  height: auto;
   font-size: 20px;
   font-weight: 900;
   border: 1px solid #4a5568;
@@ -1498,7 +1508,7 @@ button:focus-visible {
   }
 
   .game-phone-cards .bingo-cell {
-    height: 32px;
+    height: auto;
     font-size: 15px;
   }
 
