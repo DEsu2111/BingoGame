@@ -1507,17 +1507,21 @@ button:focus-visible {
 /* Global theme toggle */
 .theme-toggle-btn {
   position: fixed;
-  right: max(12px, env(safe-area-inset-right));
-  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 60;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(15, 23, 42, 0.78);
   color: #f8fafc;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 16px;
   letter-spacing: 0.04em;
-  padding: 8px 12px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   backdrop-filter: blur(8px);
 }
 
@@ -1576,10 +1580,14 @@ button:focus-visible {
 
 [data-theme='light'] .app-auth-root .text-slate-400,
 [data-theme='light'] .app-auth-root .text-slate-300,
+[data-theme='light'] .app-auth-root .text-slate-200,
 [data-theme='light'] .app-result-root .text-white\/80,
 [data-theme='light'] .app-result-root .text-white\/60,
+[data-theme='light'] .app-result-root .text-white\/55,
 [data-theme='light'] .app-select-root .text-slate-500,
 [data-theme='light'] .app-select-root .text-slate-700,
+[data-theme='light'] .app-welcome-root .text-slate-100,
+[data-theme='light'] .app-welcome-root .text-slate-200,
 [data-theme='light'] .app-welcome-root .text-slate-300,
 [data-theme='light'] .app-welcome-root .text-slate-400 {
   color: #475569 !important;
@@ -1600,4 +1608,56 @@ button:focus-visible {
 [data-theme='light'] .app-game-root .cell-called {
   background: linear-gradient(180deg, #fde68a 0%, #fbbf24 100%) !important;
   color: #1e293b !important;
+}
+
+[data-theme='light'] .app-welcome-root .hero-title {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+[data-theme='light'] .app-welcome-root .hero-sub {
+  color: #334155 !important;
+}
+
+[data-theme='light'] .app-welcome-root .welcome-countdown,
+[data-theme='light'] .app-game-root [aria-label^='Time until next round'] {
+  background: rgba(255, 241, 242, 0.95) !important;
+  border-color: rgba(251, 113, 133, 0.35) !important;
+}
+
+[data-theme='light'] .app-welcome-root .balance-card,
+[data-theme='light'] .app-welcome-root .bet-input-wrapper,
+[data-theme='light'] .app-welcome-root .action-btn-group {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+[data-theme='light'] .app-welcome-root .wallet-input,
+[data-theme='light'] .app-welcome-root .bet-input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(100, 116, 139, 0.4) !important;
+}
+
+[data-theme='light'] .app-select-root article,
+[data-theme='light'] .app-select-root .bg-slate-900\/20,
+[data-theme='light'] .app-select-root .bg-slate-900 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+[data-theme='light'] .app-game-root .game-phone-card-slot,
+[data-theme='light'] .app-game-root .game-phone-cards .bingo-card,
+[data-theme='light'] .app-game-root .game-phone-cards .bingo-cell {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(100, 116, 139, 0.45) !important;
+}
+
+[data-theme='light'] .app-result-root .bg-white\/5,
+[data-theme='light'] .app-result-root .bg-black\/25,
+[data-theme='light'] .app-result-root .bg-white\/10 {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
 }

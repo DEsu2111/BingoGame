@@ -146,8 +146,10 @@ export default function Page() {
    * - "reserved" error → kick back to welcome (cards were taken)
    */
   useEffect(() => {
-    // Track whether the player has cards assigned (2 cards = joined)
-    dispatch({ type: 'SET_JOINED', payload: cards.length === 2 });
+    // Promote to joined when cards arrive, but do not auto-demote here.
+    if (cards.length === 2 && !state.hasJoinedRound) {
+      dispatch({ type: 'SET_JOINED', payload: true });
+    }
 
     // If cards were reserved by someone else, reset to welcome
     if (error && error.toLowerCase().includes('reserved')) {
@@ -169,6 +171,13 @@ export default function Page() {
     }
     if (phase === 'ACTIVE') {
       if (state.mode !== 'game') {
+        dispatch({ type: 'VIEW_GAME' });
+      }
+      return;
+    }
+    // Keep joined players on game screen between rounds.
+    if (phase === 'COUNTDOWN' && state.hasJoinedRound) {
+      if (state.mode !== 'game' && state.mode !== 'result') {
         dispatch({ type: 'VIEW_GAME' });
       }
       return;
@@ -295,8 +304,9 @@ export default function Page() {
         className="theme-toggle-btn"
         onClick={() => setUiTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
         aria-label={`Switch to ${uiTheme === 'light' ? 'dark' : 'light'} mode`}
+        title={`Switch to ${uiTheme === 'light' ? 'dark' : 'light'} mode`}
       >
-        {uiTheme === 'light' ? 'Dark' : 'Light'}
+        {uiTheme === 'light' ? '🌙' : '☀️'}
       </button>
     </>
   );
