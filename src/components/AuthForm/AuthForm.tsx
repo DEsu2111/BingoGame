@@ -107,14 +107,6 @@ const AuthForm = React.memo(({
 
   const activeTopic = HELP_TOPICS.find((topic) => topic.id === activeHelpId) ?? HELP_TOPICS[0];
 
-  const handleAskHelp = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const topic = findHelpTopic(helpQuery);
-    setActiveHelpId(topic.id);
-    setChatReply(topic.answer);
-    setHelpQuery('');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white px-4">
       <form
@@ -144,69 +136,6 @@ const AuthForm = React.memo(({
               ? 'First time: verify, then choose a nickname to play.'
               : 'Log in to continue playing with your nickname.'}
         </p>
-
-        <button
-          type="button"
-          onClick={() => setHelpOpen((prev) => !prev)}
-          className="w-full rounded-lg border border-sky-300/40 bg-sky-500/10 px-3 py-2 text-left text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-500/20"
-          aria-expanded={helpOpen}
-          aria-controls="help-chat-panel"
-        >
-          {helpOpen ? 'Hide Help Chat' : 'Help Chat: How to join and play?'}
-        </button>
-
-        {helpOpen ? (
-          <section
-            id="help-chat-panel"
-            className="rounded-xl border border-white/10 bg-slate-900/70 p-3 space-y-3"
-            aria-label="Help chat panel"
-          >
-            <div className="grid grid-cols-1 gap-2">
-              {HELP_TOPICS.map((topic) => (
-                <button
-                  key={topic.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveHelpId(topic.id);
-                    setChatReply(topic.answer);
-                  }}
-                  className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                    activeHelpId === topic.id
-                      ? 'border-emerald-300/50 bg-emerald-500/15 text-emerald-100'
-                      : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  }`}
-                >
-                  {topic.title}
-                </button>
-              ))}
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 mb-2">Answer</p>
-              <div className="space-y-1">
-                {(chatReply ?? activeTopic.answer).map((line) => (
-                  <p key={line} className="text-xs text-slate-100">{line}</p>
-                ))}
-              </div>
-            </div>
-
-            <form onSubmit={handleAskHelp} className="flex gap-2">
-              <input
-                value={helpQuery}
-                onChange={(e) => setHelpQuery(e.target.value)}
-                placeholder="Ask: how to join, play, win..."
-                aria-label="Ask help question"
-                className="min-w-0 flex-1 rounded-lg bg-slate-950 border border-white/15 px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-slate-900"
-              >
-                Ask
-              </button>
-            </form>
-          </section>
-        ) : null}
 
         <input
           value={nicknameInput}
@@ -239,6 +168,104 @@ const AuthForm = React.memo(({
           {gameError ? <p className="text-[11px] text-rose-300">{gameError}</p> : null}
         </div>
       </form>
+
+      <button
+        type="button"
+        onClick={() => setHelpOpen((prev) => !prev)}
+        className="fixed bottom-4 left-4 z-50 rounded-full bg-white p-3 text-slate-900 shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition-transform hover:scale-105"
+        aria-expanded={helpOpen}
+        aria-controls="help-chat-panel"
+        aria-label={helpOpen ? 'Close help chat' : 'Open help chat'}
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M21 12a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-5.5A8.5 8.5 0 1 1 21 12Z" />
+        </svg>
+      </button>
+
+      {helpOpen ? (
+        <section
+          id="help-chat-panel"
+          className="fixed bottom-20 left-4 z-50 w-[min(22rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/15 bg-slate-900/95 p-3 shadow-2xl space-y-3"
+          aria-label="Help chat panel"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-200">Help Center</p>
+            <button
+              type="button"
+              onClick={() => setHelpOpen(false)}
+              className="rounded-md border border-white/20 px-2 py-1 text-[10px] font-semibold text-slate-200"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {HELP_TOPICS.map((topic) => (
+              <div key={topic.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveHelpId(topic.id);
+                    setChatReply(topic.answer);
+                  }}
+                  className={`w-full rounded-md border px-2 py-1.5 text-left text-xs font-semibold transition-colors ${
+                    activeHelpId === topic.id
+                      ? 'border-emerald-300/50 bg-emerald-500/15 text-emerald-100'
+                      : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  }`}
+                >
+                  {topic.title}
+                </button>
+                <div className="mt-2 space-y-1">
+                  {topic.answer.map((line) => (
+                    <p key={`${topic.id}-${line}`} className="text-[11px] text-slate-300">{line}</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-black/20 p-2 space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Ask a question</p>
+            <div className="flex gap-2">
+              <input
+                value={helpQuery}
+                onChange={(e) => setHelpQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const topic = findHelpTopic(helpQuery);
+                    setActiveHelpId(topic.id);
+                    setChatReply(topic.answer);
+                    setHelpQuery('');
+                  }
+                }}
+                placeholder="how to join, play, win..."
+                aria-label="Ask help question"
+                className="min-w-0 flex-1 rounded-lg bg-slate-950 border border-white/15 px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const topic = findHelpTopic(helpQuery);
+                  setActiveHelpId(topic.id);
+                  setChatReply(topic.answer);
+                  setHelpQuery('');
+                }}
+                className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-slate-900"
+              >
+                Ask
+              </button>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/50 p-2">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 mb-1">Best match</p>
+              {(chatReply ?? activeTopic.answer).map((line) => (
+                <p key={`match-${line}`} className="text-[11px] text-slate-200">{line}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 });
