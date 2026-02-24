@@ -2,6 +2,8 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let bgmAudio: HTMLAudioElement | null = null;
 let bgmRetryBound = false;
+let announceQueue: Array<{ number: number; strong: boolean }> = [];
+let announcing = false;
 const ETHIO_PENTATONIC_OFFSETS = [0, 2, 3, 7, 9];
 const LOGIN_BGM_SRC = '/sounds/አንች_ነይማ.mp3';
 
@@ -75,6 +77,85 @@ function bindBgmRetry() {
   window.addEventListener('pointerdown', retry, { passive: true });
   window.addEventListener('keydown', retry);
   bgmRetryBound = true;
+}
+
+function numberToBingoCall(value: number) {
+  if (value >= 1 && value <= 15) return `B ${value}`;
+  if (value >= 16 && value <= 30) return `I ${value}`;
+  if (value >= 31 && value <= 45) return `N ${value}`;
+  if (value >= 46 && value <= 60) return `G ${value}`;
+  return `O ${value}`;
+}
+
+function pickBestEnglishVoice() {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const exact = voices.find((v) => /google us english|microsoft aria|samantha/i.test(v.name));
+  if (exact) return exact;
+
+  const byLocale = voices.find((v) => /^en(-|_)?(US)?/i.test(v.lang));
+  return byLocale ?? voices[0];
+}
+
+function setBgmVolume(level: number) {
+  if (!bgmAudio) return;
+  bgmAudio.volume = Math.max(0, Math.min(1, level));
+}
+
+function playLoudAlertTone(strong: boolean) {
+  try {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const { ctx: context, master: destination } = audio;
+    const now = context.currentTime;
+    const baseVolume = strong ? 0.25 : 0.18;
+    tone(context, destination, 1046, now, 0.12, baseVolume, 'square');
+    tone(context, destination, 1318, now + 0.08, 0.14, baseVolume * 0.85, 'triangle');
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+function processAnnounceQueue() {
+  if (announcing || !announceQueue.length) return;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+  const next = announceQueue.shift();
+  if (!next) return;
+
+  announcing = true;
+  const spoken = numberToBingoCall(next.number);
+  const synth = window.speechSynthesis;
+  const utter = new SpeechSynthesisUtterance(spoken);
+  const selectedVoice = pickBestEnglishVoice();
+  if (selectedVoice) utter.voice = selectedVoice;
+  utter.lang = 'en-US';
+  utter.rate = 0.88;
+  utter.pitch = 1;
+  utter.volume = 1;
+
+  playLoudAlertTone(next.strong);
+  setBgmVolume(0.08);
+
+  const finish = () => {
+    setBgmVolume(0.35);
+    announcing = false;
+    window.setTimeout(processAnnounceQueue, 220);
+  };
+
+  utter.onend = finish;
+  utter.onerror = finish;
+
+  try {
+    synth.cancel();
+    window.setTimeout(() => {
+      synth.speak(utter);
+    }, 120);
+  } catch {
+    finish();
+  }
 }
 
 export function primeSoundEngine() {
@@ -256,6 +337,30 @@ export function stopLoginBackgroundMusic() {
     if (!bgmAudio) return;
     bgmAudio.pause();
     bgmAudio.currentTime = 0;
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function announceCalledNumber(number: number, isFirstFive: boolean) {
+  try {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (number < 1 || number > 75) return;
+    announceQueue.push({ number, strong: isFirstFive });
+    processAnnounceQueue();
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function stopCalledNumberAnnouncements() {
+  try {
+    announceQueue = [];
+    announcing = false;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setBgmVolume(0.35);
   } catch {
     // Ignore unsupported audio environments.
   }

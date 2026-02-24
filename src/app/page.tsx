@@ -23,13 +23,14 @@ import AuthForm from '@/components/AuthForm';
 import GameBoard from '@/components/GameBoard';
 import ResultOverlay from '@/components/ResultOverlay';
 import {
+  announceCalledNumber,
   playLoginSuccessSound,
   playLoseSound,
-  playNumberCalledSound,
   playRoundStartSound,
   playWinSound,
   primeSoundEngine,
   startLoginBackgroundMusic,
+  stopCalledNumberAnnouncements,
   stopLoginBackgroundMusic,
 } from '@/lib/sound';
 
@@ -184,6 +185,7 @@ export default function Page() {
   useEffect(() => {
     if (!nickname) {
       prevNicknameRef.current = '';
+      stopCalledNumberAnnouncements();
       stopLoginBackgroundMusic();
       return;
     }
@@ -195,6 +197,7 @@ export default function Page() {
   }, [nickname]);
 
   useEffect(() => () => {
+    stopCalledNumberAnnouncements();
     stopLoginBackgroundMusic();
   }, []);
 
@@ -224,10 +227,10 @@ export default function Page() {
       return;
     }
     if (lastNumber !== prevLastNumberRef.current) {
-      playNumberCalledSound(lastNumber);
+      announceCalledNumber(lastNumber, called.length <= 5);
     }
     prevLastNumberRef.current = lastNumber;
-  }, [phase, lastNumber]);
+  }, [phase, lastNumber, called.length]);
 
   // ─── Event Handlers ─────────────────────────────────────
 

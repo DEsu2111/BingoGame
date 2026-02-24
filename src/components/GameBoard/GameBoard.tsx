@@ -39,8 +39,11 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
   return (
     <main className="h-dvh w-screen bg-[#050812] text-white overflow-hidden" role="main">
       {phase === 'ACTIVE' ? (
-        <div className="pointer-events-none absolute left-1/2 top-2 z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-sm font-black tabular-nums">
-          {String(Math.max(0, countdown)).padStart(2, '0')}
+        <div
+          className="pointer-events-none absolute left-1/2 top-2 z-30 -translate-x-1/2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-center"
+          aria-label={`Time until next round: ${countdown} seconds`}
+        >
+          <p className="text-lg font-black text-rose-300 tabular-nums" aria-hidden="true">{Math.max(0, countdown)}s</p>
         </div>
       ) : null}
       <section
