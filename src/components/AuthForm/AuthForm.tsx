@@ -108,7 +108,7 @@ const AuthForm = React.memo(({
   const activeTopic = HELP_TOPICS.find((topic) => topic.id === activeHelpId) ?? HELP_TOPICS[0];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white px-4">
+    <div className="app-auth-root min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white px-4">
       <form
         onSubmit={onSubmit}
         aria-label={isFirstTime ? 'Sign up form' : 'Log in form'}

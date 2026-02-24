@@ -1503,3 +1503,101 @@ button:focus-visible {
     font-size: 14px;
   }
 }
+
+/* Global theme toggle */
+.theme-toggle-btn {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 60;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.78);
+  color: #f8fafc;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  backdrop-filter: blur(8px);
+}
+
+[data-theme='light'] .theme-toggle-btn {
+  border-color: rgba(100, 116, 139, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+/* Light mode: app-wide readability */
+[data-theme='light'] body {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 226, 180, 0.35), transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(186, 230, 253, 0.4), transparent 42%),
+    #f8fafc;
+  color: #0f172a;
+}
+
+[data-theme='light'] .app-auth-root,
+[data-theme='light'] .app-welcome-root,
+[data-theme='light'] .app-select-root,
+[data-theme='light'] .app-game-root,
+[data-theme='light'] .app-result-root {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .app-auth-root form,
+[data-theme='light'] .app-result-root article,
+[data-theme='light'] .app-select-root section,
+[data-theme='light'] .app-welcome-root section,
+[data-theme='light'] .app-game-root .game-right-panel,
+[data-theme='light'] .app-game-root .called-table-shell {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme='light'] .app-auth-root input,
+[data-theme='light'] .app-auth-root button,
+[data-theme='light'] .app-welcome-root input,
+[data-theme='light'] .app-welcome-root button,
+[data-theme='light'] .app-result-root button,
+[data-theme='light'] .app-select-root button {
+  color: #0f172a;
+}
+
+[data-theme='light'] .app-auth-root .text-white,
+[data-theme='light'] .app-welcome-root .text-white,
+[data-theme='light'] .app-select-root .text-white,
+[data-theme='light'] .app-game-root .text-white,
+[data-theme='light'] .app-result-root .text-white {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .app-auth-root .text-slate-400,
+[data-theme='light'] .app-auth-root .text-slate-300,
+[data-theme='light'] .app-result-root .text-white\/80,
+[data-theme='light'] .app-result-root .text-white\/60,
+[data-theme='light'] .app-select-root .text-slate-500,
+[data-theme='light'] .app-select-root .text-slate-700,
+[data-theme='light'] .app-welcome-root .text-slate-300,
+[data-theme='light'] .app-welcome-root .text-slate-400 {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .app-game-root .called-table-head,
+[data-theme='light'] .app-game-root .called-table-grid,
+[data-theme='light'] .app-game-root .game-right-topbar {
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%) !important;
+}
+
+[data-theme='light'] .app-game-root .cell-uncalled {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  border-color: rgba(100, 116, 139, 0.35) !important;
+}
+
+[data-theme='light'] .app-game-root .cell-called {
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 100%) !important;
+  color: #1e293b !important;
+}

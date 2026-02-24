@@ -34,6 +34,8 @@ import {
   stopLoginBackgroundMusic,
 } from '@/lib/sound';
 
+type UiTheme = 'dark' | 'light';
+
 // ─── Helpers ──────────────────────────────────────────────
 
 /**
@@ -90,9 +92,22 @@ export default function Page() {
   const prevNicknameRef = useRef('');
   const prevPhaseRef = useRef(phase);
   const prevLastNumberRef = useRef<number | null>(null);
+  const [uiTheme, setUiTheme] = useState<UiTheme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('ui_theme');
+    return stored === 'light' || stored === 'dark' ? stored : 'dark';
+  });
 
   /** Nickname must be at least 3 characters to be valid. */
   const isNicknameValid = nickInput.trim().length >= 3;
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.setAttribute('data-theme', uiTheme);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('ui_theme', uiTheme);
+    }
+  }, [uiTheme]);
 
   // ─── Effects ──────────────────────────────────────────
 
@@ -272,11 +287,25 @@ export default function Page() {
     join(nickInput.trim(), authToken);
   }, [authToken, isFirstTime, isNicknameValid, nickInput, join]);
 
+  const renderWithThemeToggle = (content: React.ReactNode) => (
+    <>
+      {content}
+      <button
+        type="button"
+        className="theme-toggle-btn"
+        onClick={() => setUiTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+        aria-label={`Switch to ${uiTheme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {uiTheme === 'light' ? 'Dark' : 'Light'}
+      </button>
+    </>
+  );
+
   // ─── Render (mode-based routing) ──────────────────────
 
   // Not authenticated yet → show login/signup form
   if (!nickname) {
-    return (
+    return renderWithThemeToggle(
       <AuthForm
         countdown={countdown}
         isFirstTime={isFirstTime}
@@ -294,12 +323,12 @@ export default function Page() {
 
   // Card selection phase
   if (state.mode === 'select') {
-    return <SelectCards />;
+    return renderWithThemeToggle(<SelectCards />);
   }
 
   // Active game phase → show the board
   if (state.mode === 'game') {
-    return (
+    return renderWithThemeToggle(
       <GameBoard
         called={called}
         countdown={countdown}
@@ -313,13 +342,13 @@ export default function Page() {
 
   // Round ended → show the result
   if (state.mode === 'result') {
-    return <ResultOverlay nickname={nickname} lastWinner={lastWinner} onLogout={logout} />;
+    return renderWithThemeToggle(<ResultOverlay nickname={nickname} lastWinner={lastWinner} onLogout={logout} />);
   }
 
   // Default: welcome/lobby screen
   const WelcomeView = Welcome as React.ComponentType<WelcomeProps>;
 
-  return (
+  return renderWithThemeToggle(
     <WelcomeView
       nickname={nickname}
       error={error}

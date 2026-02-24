@@ -1,5 +1,5 @@
-/**
- * GameBoard.tsx — Main Game View
+﻿/**
+ * GameBoard.tsx â€” Main Game View
  *
  * Renders the in-game layout when a round is active or the player
  * is spectating. Composed of three sub-components:
@@ -19,7 +19,7 @@ import type { BingoCard } from '@/types/game';
 import PlayerCards from '@/components/Game/PlayerCards';
 import CalledNumbersTable from '@/components/Game/CalledNumbersTable';
 
-// ─── Props ──────────────────────────────────────────────
+// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type GameBoardProps = {
   called: number[];                                        // All called numbers this round
@@ -30,14 +30,14 @@ type GameBoardProps = {
   onMarkCell: (cardIndex: number, row: number, col: number) => void;  // Callback when player taps a cell
 };
 
-// ─── Component ──────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onMarkCell }: GameBoardProps) => {
   const calledSet = useMemo(() => new Set(called), [called]);
   const isParticipant = cards.length === 2;
 
   return (
-    <main className="h-dvh w-screen bg-[#050812] text-white overflow-hidden" role="main">
+    <main className="app-game-root h-dvh w-screen bg-[#050812] text-white overflow-hidden" role="main">
       <div
         className="pointer-events-none fixed left-1/2 top-[max(0.5rem,env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-center"
         aria-label={`Time until next round: ${countdown} seconds`}
@@ -84,7 +84,7 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
             role="complementary"
           >
             <div className="w-full rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-6 text-center text-sm font-semibold text-amber-100 shadow-xl">
-              <span className="block text-2xl mb-2">👀</span>
+              <span className="block text-2xl mb-2">ðŸ‘€</span>
               Spectating... <br /> Wait for the next round to join.
             </div>
           </div>
@@ -97,3 +97,5 @@ const GameBoard = React.memo(({ called, countdown, lastNumber, cards, phase, onM
 GameBoard.displayName = 'GameBoard';
 
 export default GameBoard;
+
+

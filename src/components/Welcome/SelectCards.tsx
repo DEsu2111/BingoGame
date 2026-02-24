@@ -18,7 +18,7 @@ export default function SelectCards() {
   };
 
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#020408] text-white overflow-hidden font-sans">
+    <main className="app-select-root fixed inset-0 flex flex-col bg-[#020408] text-white overflow-hidden font-sans">
       
       {/* HIGH-CONTRAST BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none">
@@ -100,7 +100,7 @@ export default function SelectCards() {
             {canBegin ? (
               <div className="flex items-center justify-center gap-3">
                 <span className="text-base">Ready to Draw</span>
-                <span className="text-2xl">🔥</span>
+                <span className="text-2xl">??</span>
               </div>
             ) : (
               <span className="text-sm opacity-50">Select 2 Cards</span>
@@ -132,3 +132,5 @@ export default function SelectCards() {
     </main>
   );
 }
+
+

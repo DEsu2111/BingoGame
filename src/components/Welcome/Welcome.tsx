@@ -98,7 +98,7 @@ export default function Welcome(props: WelcomeProps) {
   
 
   return (
-    <main className="relative min-h-[100dvh] w-full flex flex-col bg-[#050712] text-slate-100 antialiased overflow-y-auto overflow-x-hidden small-scroll pb-safe-bottom">
+    <main className="app-welcome-root relative min-h-[100dvh] w-full flex flex-col bg-[#050712] text-slate-100 antialiased overflow-y-auto overflow-x-hidden small-scroll pb-safe-bottom">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-[90px]" />
@@ -261,17 +261,15 @@ export default function Welcome(props: WelcomeProps) {
               ) : null}
             </div>
           )}
-          {alreadyJoined && (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200">
-              You can change cards during this round. Joining again will charge the bet again.
-            </div>
-          )}
           <div className="max-h-28 overflow-y-auto pr-1">
             <CardSelector
               cards={state.allCards}
               selectedIndices={pendingSelectedIndices}
               takenSlots={takenSlots}
-              onSelect={(indices) => setPendingSelectedIndices(indices)}
+              onSelect={(indices) => {
+                if (alreadyJoined) return;
+                setPendingSelectedIndices(indices);
+              }}
             />
           </div>
         </section>

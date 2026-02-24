@@ -77,7 +77,7 @@ export default function ResultPage({ nickname, lastWinner, onLogout }: ResultPag
   const progressPct = Math.max(0, Math.min(100, ((AUTO_RETURN_SECONDS - secondsLeft) / AUTO_RETURN_SECONDS) * 100));
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+    <main className="app-result-root relative min-h-screen overflow-hidden bg-slate-950 text-white">
       <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
         <div className={`absolute -left-24 top-10 h-56 w-56 rounded-full blur-3xl ${isSelfWinner ? 'bg-emerald-500/35' : 'bg-cyan-500/25'}`} />
         <div className={`absolute -right-24 bottom-10 h-56 w-56 rounded-full blur-3xl ${isSelfWinner ? 'bg-amber-400/30' : 'bg-indigo-500/30'}`} />
