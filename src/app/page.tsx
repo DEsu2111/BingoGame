@@ -29,6 +29,8 @@ import {
   playRoundStartSound,
   playWinSound,
   primeSoundEngine,
+  startLoginBackgroundMusic,
+  stopLoginBackgroundMusic,
 } from '@/lib/sound';
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -182,13 +184,19 @@ export default function Page() {
   useEffect(() => {
     if (!nickname) {
       prevNicknameRef.current = '';
+      stopLoginBackgroundMusic();
       return;
     }
     if (!prevNicknameRef.current) {
       playLoginSuccessSound();
     }
+    startLoginBackgroundMusic();
     prevNicknameRef.current = nickname;
   }, [nickname]);
+
+  useEffect(() => () => {
+    stopLoginBackgroundMusic();
+  }, []);
 
   // Sound: phase transitions for round start/end.
   useEffect(() => {

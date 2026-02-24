@@ -1,6 +1,9 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+let bgmAudio: HTMLAudioElement | null = null;
+let bgmRetryBound = false;
 const ETHIO_PENTATONIC_OFFSETS = [0, 2, 3, 7, 9];
+const LOGIN_BGM_SRC = '/sounds/አንች_ነይማ.mp3';
 
 function ensureAudio() {
   if (typeof window === 'undefined') return null;
@@ -59,6 +62,19 @@ function scaleFreq(base: number, step: number) {
   const scaleIndex = step % ETHIO_PENTATONIC_OFFSETS.length;
   const semitones = ETHIO_PENTATONIC_OFFSETS[scaleIndex] + octaveShift * 12;
   return base * 2 ** (semitones / 12);
+}
+
+function bindBgmRetry() {
+  if (typeof window === 'undefined' || bgmRetryBound) return;
+  const retry = () => {
+    if (!bgmAudio) return;
+    void bgmAudio.play().catch(() => {
+      // Keep waiting for a future user gesture.
+    });
+  };
+  window.addEventListener('pointerdown', retry, { passive: true });
+  window.addEventListener('keydown', retry);
+  bgmRetryBound = true;
 }
 
 export function primeSoundEngine() {
@@ -213,6 +229,33 @@ export function playWinSound() {
     chime(context, destination, scaleFreq(330, 2), now + 0.08, 0.22, 0.1);
     chime(context, destination, scaleFreq(330, 4), now + 0.16, 0.25, 0.11);
     chime(context, destination, scaleFreq(330, 7), now + 0.26, 0.36, 0.12);
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function startLoginBackgroundMusic() {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!bgmAudio) {
+      bgmAudio = new Audio(LOGIN_BGM_SRC);
+      bgmAudio.loop = true;
+      bgmAudio.preload = 'auto';
+      bgmAudio.volume = 0.35;
+    }
+    void bgmAudio.play().catch(() => {
+      bindBgmRetry();
+    });
+  } catch {
+    // Ignore unsupported audio environments.
+  }
+}
+
+export function stopLoginBackgroundMusic() {
+  try {
+    if (!bgmAudio) return;
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
   } catch {
     // Ignore unsupported audio environments.
   }
