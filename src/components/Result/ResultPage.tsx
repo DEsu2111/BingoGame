@@ -1,21 +1,22 @@
-// Result page with distinct win / loss experiences and Telegram sharing.
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '@/context/GameContext';
 
 const TELEGRAM_BOT_USERNAME = 'OnlineBingoGame_bot';
 const TELEGRAM_BOT_NAME = 'BingoGame';
+const AUTO_RETURN_SECONDS = 10;
 
 function shareToTelegram(status: 'win' | 'loss', score: number) {
   const message =
     status === 'win'
-      ? `You won this round! Share your win at @${TELEGRAM_BOT_USERNAME}.`
-      : `Good try! Share or get tips at @${TELEGRAM_BOT_USERNAME}.`;
+      ? `I just won a Bingo round. Join me at @${TELEGRAM_BOT_USERNAME}.`
+      : `I finished a Bingo round. Play with me at @${TELEGRAM_BOT_USERNAME}.`;
 
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent('https://yourgame.com')}&text=${encodeURIComponent(
     message,
   )}&score=${encodeURIComponent(score)}`;
+
   if (typeof window !== 'undefined') {
     window.open(telegramUrl, '_blank');
   }
@@ -29,106 +30,117 @@ type ResultPageProps = {
 
 export default function ResultPage({ nickname, lastWinner, onLogout }: ResultPageProps) {
   const { state, dispatch } = useGame();
+  const [secondsLeft, setSecondsLeft] = useState(AUTO_RETURN_SECONDS);
 
   const winnerName = lastWinner ?? state.winnerName ?? null;
-  const isSelfWinner = winnerName && nickname && winnerName === nickname;
+  const isSelfWinner = Boolean(winnerName && nickname && winnerName === nickname);
   const noWinner = winnerName === 'No winner' || !winnerName;
 
-  // After 10s, return to welcome and wait for the next server countdown to hit 0
   useEffect(() => {
-    const id = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       dispatch({ type: 'PLAY_AGAIN' });
-    }, 10000);
-    return () => clearTimeout(id);
+    }, AUTO_RETURN_SECONDS * 1000);
+
+    const intervalId = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [dispatch]);
 
-  // Unified background color for result screen
-  const bgClass = 'bg-slate-950';
-  const cardClass = isSelfWinner ? 'glass-card-win' : 'glass-card-loss';
-
+  const status: 'win' | 'loss' = isSelfWinner ? 'win' : 'loss';
   const headline = isSelfWinner
-    ? 'YOU ARE THE WINNER!'
+    ? 'Round Won'
     : noWinner
-      ? 'SO CLOSE! NO ONE WON.'
-      : `WINNER: ${winnerName}`;
+      ? 'No Winner This Round'
+      : `${winnerName} Won This Round`;
 
   const subline = isSelfWinner
-    ? `Congrats, ${nickname}! You won $${state.winAmount.toFixed(2)}.`
+    ? `Great round, ${nickname}. Your payout is $${state.winAmount.toFixed(2)}.`
     : noWinner
-      ? 'No one claimed Bingo this round. Try again next round.'
-      : `${winnerName} took this round. You can win the next one.`;
+      ? 'No one completed bingo in time. Jump back in the next round.'
+      : 'Stay in the lobby and join the next round quickly.';
 
-  const actionClick = () => shareToTelegram('win', state.winAmount);
+  const details = useMemo(
+    () => [
+      { label: 'Matched', value: `${state.matchedCount}` },
+      { label: 'Bet', value: `$${state.betAmount.toFixed(2)}` },
+      { label: 'Payout', value: isSelfWinner ? `$${state.winAmount.toFixed(2)}` : '$0.00' },
+      { label: 'Calls', value: `${state.calledNumbersList.length}` },
+    ],
+    [isSelfWinner, state.betAmount, state.calledNumbersList.length, state.matchedCount, state.winAmount],
+  );
 
-  const detailLines = useMemo(() => {
-    const lines = [
-      `Matched: ${state.matchedCount}`,
-      `Bet: $${state.betAmount.toFixed(2)}`,
-      isSelfWinner ? `Payout: $${state.winAmount.toFixed(2)}` : 'Payout: $0.00',
-    ];
-    if (state.calledNumbersList.length) {
-      lines.push(`Calls this round: ${state.calledNumbersList.length}`);
-    }
-    if (state.results.length) {
-      lines.push(`Rounds played: ${state.results.length}`);
-    }
-    return lines;
-  }, [isSelfWinner, state.betAmount, state.calledNumbersList.length, state.matchedCount, state.results.length, state.winAmount]);
+  const progressPct = Math.max(0, Math.min(100, ((AUTO_RETURN_SECONDS - secondsLeft) / AUTO_RETURN_SECONDS) * 100));
 
   return (
-    <main className={`min-h-screen p-4 sm:p-6 md:p-8 ${bgClass}`}>
-      <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col items-center justify-center">
-        <div className={`relative w-full overflow-hidden rounded-3xl border border-white/15 p-6 sm:p-8 shadow-2xl ${cardClass}`}>
-          <button
-            type="button"
-            onClick={() => {
-              onLogout();
-              dispatch({ type: 'PLAY_AGAIN' });
-            }}
-            className="absolute right-4 top-4 z-20 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
-          >
-            Log out
-          </button>
-          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/16 via-white/6 to-transparent blur-3xl" />
-          {isSelfWinner ? <div className="confetti confetti-1" /> : null}
-          {isSelfWinner ? <div className="confetti confetti-2" /> : null}
-          <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-            <div className={isSelfWinner ? 'trophy-blob' : 'robot-blob'}>{isSelfWinner ? 'WIN' : 'TRY'}</div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg">
-              {headline}
-            </h1>
-            <p className="max-w-xl text-base sm:text-lg text-white/85">{subline}</p>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-white/85">
-              {detailLines.map((line) => (
-                <span key={line} className="rounded-full bg-white/12 px-3 py-1 backdrop-blur">
-                  {line}
-                </span>
-              ))}
-            </div>
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+        <div className={`absolute -left-24 top-10 h-56 w-56 rounded-full blur-3xl ${isSelfWinner ? 'bg-emerald-500/35' : 'bg-cyan-500/25'}`} />
+        <div className={`absolute -right-24 bottom-10 h-56 w-56 rounded-full blur-3xl ${isSelfWinner ? 'bg-amber-400/30' : 'bg-indigo-500/30'}`} />
+      </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="button" onClick={actionClick} className="btn-telegram">
-                Share to Telegram (share link)
-              </button>
+      <section className="relative mx-auto flex min-h-screen w-full max-w-4xl items-center px-4 py-8 sm:px-6">
+        <article className="w-full rounded-3xl border border-white/15 bg-white/5 p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-7">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Round Result</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{headline}</h1>
+              <p className="mt-2 max-w-xl text-sm text-white/80 sm:text-base">{subline}</p>
             </div>
-            <div className="w-full pt-4 text-center text-sm text-white/80">
-              {isSelfWinner ? (
-                <p className="font-semibold">Share the win with friends via Telegram bot <strong>{TELEGRAM_BOT_NAME}</strong></p>
-              ) : (
-                <p className="font-semibold">Need a boost? Chat with bot <strong>{TELEGRAM_BOT_NAME}</strong> to share or get tips.</p>
-              )}
-              <a
-                href={`https://t.me/${TELEGRAM_BOT_USERNAME}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center mt-2 px-4 py-2 rounded-full bg-white/15 border border-white/25 text-sm font-bold text-white hover:bg-white/20"
-              >
-                Open {TELEGRAM_BOT_NAME}
-              </a>
+            <button
+              type="button"
+              onClick={() => {
+                onLogout();
+                dispatch({ type: 'PLAY_AGAIN' });
+              }}
+              className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20"
+            >
+              Logout
+            </button>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {details.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white/15 bg-white/5 p-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-white/55">{item.label}</p>
+                <p className="mt-1 text-xl font-black text-white">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-white/15 bg-black/25 p-3">
+            <div className="mb-2 flex items-center justify-between text-xs text-white/80">
+              <span>Returning to lobby automatically</span>
+              <span className="font-bold tabular-nums">{secondsLeft}s</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+              <div className={`h-full rounded-full ${isSelfWinner ? 'bg-emerald-400' : 'bg-sky-400'}`} style={{ width: `${progressPct}%` }} />
             </div>
           </div>
-        </div>
-      </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => shareToTelegram(status, state.winAmount)}
+              className="flex-1 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-400 px-4 py-3 text-sm font-black text-slate-900 shadow-[0_10px_24px_rgba(16,185,129,0.35)]"
+            >
+              Share Result
+            </button>
+            <a
+              href={`https://t.me/${TELEGRAM_BOT_USERNAME}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-center text-sm font-bold text-white hover:bg-white/15"
+            >
+              Open {TELEGRAM_BOT_NAME}
+            </a>
+          </div>
+        </article>
+      </section>
     </main>
   );
 }
