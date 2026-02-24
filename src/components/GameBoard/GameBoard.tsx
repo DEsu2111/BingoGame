@@ -61,9 +61,6 @@ const GameBoard = React.memo(({ called, lastNumber, cards, phase, onMarkCell }: 
                 <span>CALL</span>
               </div>
               <div className="game-right-badge">{lastNumber ?? '-'}</div>
-              <button type="button" className="game-right-force" disabled aria-disabled="true">
-                Force Win
-              </button>
             </div>
             <div className="player-cards-stack h-[calc(100%-4.5rem)]">
               <PlayerCards

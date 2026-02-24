@@ -1365,7 +1365,7 @@ button:focus-visible {
 .game-right-topbar {
   height: 3.75rem;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
@@ -1398,16 +1398,6 @@ button:focus-visible {
   box-shadow: 0 0 16px rgba(255, 224, 109, 0.6);
 }
 
-.game-right-force {
-  border: none;
-  border-radius: 12px;
-  padding: 10px 11px;
-  font-weight: 800;
-  font-size: 20px;
-  color: #082b20;
-  background: linear-gradient(180deg, #32ddb8 0%, #1ec8a0 100%);
-  opacity: 1;
-}
 
 .player-cards-stack.game-phone-cards {
   height: calc(100% - 4.5rem);
@@ -1500,11 +1490,6 @@ button:focus-visible {
     width: 50px;
     height: 50px;
     font-size: 26px;
-  }
-
-  .game-right-force {
-    font-size: 13px;
-    padding: 8px 9px;
   }
 
   .game-phone-cards .bingo-cell {
