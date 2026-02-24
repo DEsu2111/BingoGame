@@ -104,6 +104,12 @@ function setBgmVolume(level: number) {
   bgmAudio.volume = Math.max(0, Math.min(1, level));
 }
 
+function hasSpeechSupport() {
+  return typeof window !== 'undefined'
+    && 'speechSynthesis' in window
+    && 'SpeechSynthesisUtterance' in window;
+}
+
 function playLoudAlertTone(strong: boolean) {
   try {
     const audio = ensureAudio();
@@ -120,7 +126,11 @@ function playLoudAlertTone(strong: boolean) {
 
 function processAnnounceQueue() {
   if (announcing || !announceQueue.length) return;
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  if (!hasSpeechSupport()) {
+    announceQueue = [];
+    announcing = false;
+    return;
+  }
 
   const next = announceQueue.shift();
   if (!next) return;
@@ -136,7 +146,6 @@ function processAnnounceQueue() {
   utter.pitch = 1;
   utter.volume = 1;
 
-  playLoudAlertTone(next.strong);
   setBgmVolume(0.08);
 
   const finish = () => {
@@ -344,8 +353,11 @@ export function stopLoginBackgroundMusic() {
 
 export function announceCalledNumber(number: number, isFirstFive: boolean) {
   try {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
     if (number < 1 || number > 75) return;
+    // Always emit a loud reminder tone, even when voice synthesis is unavailable.
+    playLoudAlertTone(isFirstFive);
+    playNumberCalledSound(number);
+    if (!hasSpeechSupport()) return;
     announceQueue.push({ number, strong: isFirstFive });
     processAnnounceQueue();
   } catch {
